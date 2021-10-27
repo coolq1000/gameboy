@@ -13,7 +13,9 @@ typedef struct
 	ppu_t ppu;
 } dmg_t;
 
-void dmg_create(dmg_t* dmg);
+void dmg_create(dmg_t* dmg, rom_t* rom);
 void dmg_destroy(dmg_t* dmg);
+
+void dmg_cycle(dmg_t* dmg);
 
 #endif
