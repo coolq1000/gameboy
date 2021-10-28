@@ -14,7 +14,11 @@ void cpu_create(cpu_t* cpu)
 	cpu->registers.sp = 0xFFFE;
 	cpu->registers.pc = 0x0100;
 
+	/* setup clock */
+	cpu->clock.cycles = 0;
+
 	/* setup interrupts */
+	cpu->interrupt.delay = 0;
 	cpu->interrupt.master = true;
 }
 
@@ -49,13 +53,28 @@ void cpu_dump(cpu_t* cpu)
 	printf("   ime: %s\n", cpu->interrupt.master ? "enabled" : "disabled");
 }
 
-void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
+void cpu_call(cpu_t* cpu, mmu_t* mmu, uint16_t address)
 {
-	/* fetch opcode */
-	uint8_t opcode = mmu_peek8(mmu, cpu->registers.pc);
-	opc_t* opc = &opc_opcodes[opcode];
+	/* write address */
+	mmu_poke16(mmu, cpu->registers.sp, cpu->registers.pc);
 
-	/* read out immediate values */
+	/* decrement stack */
+	cpu->registers.sp -= sizeof(uint16_t);
+}
+
+void cpu_ret(cpu_t* cpu, mmu_t* mmu)
+{
+	/* jump back */
+	cpu->registers.pc = mmu_peek16(mmu, cpu->registers.sp);
+
+	/* increment stack */
+	cpu->registers.sp += sizeof(uint16_t);
+}
+
+void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
+{
+	/* decode opcode & immediate values */
+	opc_t* opc = &opc_opcodes[opcode];
 	uint8_t imm8 = mmu_peek8(mmu, cpu->registers.pc + 1);
 	uint16_t imm16 = mmu_peek16(mmu, cpu->registers.pc + 1);
 
@@ -63,8 +82,7 @@ void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
 	cpu->registers.pc += opc->length;
 	cpu->clock.cycles += opc->cycles;
 
-	// cpu_trace(cpu, opc);
-
+	/* execute based on opcode */
 	switch (opcode)
 	{
 	case 0x00: /* nop */
@@ -1160,6 +1178,71 @@ void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
 		cpu_fault(cpu, opc, "undefined opcode");
 	    break;
 	}
+}
 
+void cpu_request(cpu_t* cpu, mmu_t* mmu, uint8_t index)
+{
+	/* set interrupt request flag bit */
+	mmu->io[IRF & 0xFF] |= (1 << index);
+}
+
+void cpu_interrupt(cpu_t* cpu, mmu_t* mmu, uint16_t address)
+{
+	/* disable interrupts */
+	cpu->interrupt.master = false;
+
+	/* call interrupt-vector */
+	cpu_call(cpu, mmu, address);
+}
+
+void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
+{
+	/* fetch opcode */
+	uint8_t opcode = mmu_peek8(mmu, cpu->registers.pc);
+
+	/* execute */
+	// cpu_trace(cpu, opc);
+	cpu_execute(cpu, mmu, opcode);
 	// cpu_dump(cpu);
+
+	/* request interrupts */
+	cpu_request(cpu, mmu, INT_V_BLANK_INDEX);
+
+	/* execute interrupts */
+	if (cpu->interrupt.master && !cpu->interrupt.delay)
+	{
+		uint8_t interrupt_enable = mmu->interrupt_enable;
+		uint8_t interrupt_request = mmu->io[IRF & 0xFF];
+		uint8_t interrupt_flags = interrupt_enable & interrupt_request;
+
+		if (interrupt_flags & INT_V_BLANK_INDEX)
+		{
+			/* v-blank interrupt */
+			cpu_interrupt(cpu, mmu, INT_V_BLANK);
+		}
+		else if (interrupt_flags & INT_LCD_STAT_INDEX)
+		{
+			/* lcd-stat interrupt */
+			cpu_interrupt(cpu, mmu, INT_LCD_STAT);
+		}
+		else if (interrupt_flags & INT_TIMER_INDEX)
+		{
+			/* timer interrupt */
+			cpu_interrupt(cpu, mmu, INT_TIMER);
+		}
+		else if (interrupt_flags & INT_SERIAL_INDEX)
+		{
+			/* serial interrupt */
+			cpu_interrupt(cpu, mmu, INT_SERIAL);
+		}
+		else if (interrupt_flags & INT_JOYPAD_INDEX)
+		{
+			/* joypad interrupt */
+			cpu_interrupt(cpu, mmu, INT_JOYPAD);
+		}
+	}
+	else if (cpu->interrupt.delay)
+	{
+		cpu->interrupt.delay--;
+	}
 }

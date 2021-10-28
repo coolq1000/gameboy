@@ -22,7 +22,7 @@
 		{
 			"target": "terminus_exec",
 			"name": "gameboy: generate, build & execute",
-			"shell_cmd": "cmake $folder -Bbuild -GNinja && ninja -C build && cls && $folder/build/gameboy",
+			"shell_cmd": "cmake $folder -Bbuild -GNinja && ninja -C build && cls && $folder/build/client/client.exe",
 		}
 	],
 }

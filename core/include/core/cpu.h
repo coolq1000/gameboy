@@ -8,9 +8,25 @@
 #include "mmu.h"
 #include "opc.h"
 
+/* flags */
 #define IS_ZERO(reg) (!reg)
 #define HALF_CARRY(a, b) (((a + b) & 0x10) > 0)
 #define FULL_CARRY(a, b) (((a + b) & 0x100) > 0)
+
+/* interrupts */
+#define IRF 0xFF0F /* interrupt request flag */
+
+#define INT_V_BLANK		0x40
+#define INT_LCD_STAT	0x48
+#define INT_TIMER		0x50
+#define INT_SERIAL		0x58
+#define INT_JOYPAD		0x60
+
+#define INT_V_BLANK_INDEX	(1 << 0)
+#define INT_LCD_STAT_INDEX	(1 << 1)
+#define INT_TIMER_INDEX		(1 << 2)
+#define INT_SERIAL_INDEX	(1 << 3)
+#define INT_JOYPAD_INDEX	(1 << 4)
 
 typedef struct cpu
 {
@@ -49,6 +65,7 @@ typedef struct cpu
 	} clock;
 	struct
 	{
+		int delay;
 		bool master;
 	} interrupt;
 } cpu_t;
@@ -59,6 +76,11 @@ void cpu_destroy(cpu_t* cpu);
 void cpu_fault(cpu_t* cpu, opc_t* opc, const char* message);
 void cpu_trace(cpu_t* cpu, opc_t* opc);
 void cpu_dump(cpu_t* cpu);
+void cpu_call(cpu_t* cpu, mmu_t* mmu, uint16_t address);
+void cpu_ret(cpu_t* cpu, mmu_t* mmu);
+void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode);
+void cpu_request(cpu_t* cpu, mmu_t* mmu, uint8_t index);
+void cpu_interrupt(cpu_t* cpu, mmu_t* mmu, uint16_t address);
 void cpu_cycle(cpu_t* cpu, mmu_t* mmu);
 
 #endif
