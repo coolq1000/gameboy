@@ -1,4 +1,7 @@
 
+# macos
+.DS_STORE
+
 # sublime
 *.sublime-workspace
 
