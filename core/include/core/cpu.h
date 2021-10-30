@@ -61,13 +61,15 @@ typedef struct cpu
 	} registers;
 	struct
 	{
-		size_t cycles;
+		uint8_t cycles;
 	} clock;
 	struct
 	{
 		int delay;
 		bool master;
 	} interrupt;
+
+	bool halted;
 } cpu_t;
 
 void cpu_create(cpu_t* cpu);

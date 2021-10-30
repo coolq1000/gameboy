@@ -77,6 +77,10 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 
 uint8_t mmu_peek8(mmu_t* mmu, uint16_t address)
 {
+	if (address >= 0x8000 && address < 0xA000)
+	{
+		printf("wrote vram: %X\n", address);
+	}
 	return *mmu_map(mmu, address);
 }
 

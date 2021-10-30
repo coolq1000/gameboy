@@ -17,4 +17,8 @@ void dmg_destroy(dmg_t* dmg)
 void dmg_cycle(dmg_t* dmg)
 {
 	cpu_cycle(&dmg->cpu, &dmg->mmu);
+	if (!dmg->cpu.halted)
+	{
+		ppu_cycle(&dmg->ppu, &dmg->mmu, dmg->cpu.clock.cycles);
+	}
 }

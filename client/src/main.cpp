@@ -21,12 +21,12 @@ int main()
 	dmg_create(&dmg, &rom);
 
 	/* cycle the cpu */
-	for (size_t i = 0; i < 1000000; i++)
+	for (size_t i = 0; i < 10000000; i++)
 	{
 		dmg_cycle(&dmg);
 	}
 
-	for (size_t i = 0; i < 10; i++)
+	for (size_t i = 0; i < 100; i++)
 	{
 		dmg_cycle(&dmg);
 		cpu_dump(&dmg.cpu);
