@@ -1,0 +1,28 @@
+{
+	"folders":
+	[
+		{ "path": ".", "file_exclude_patterns": ["*.sublime-*"] }
+	],
+	"build_systems": [
+		{
+			"target": "terminus_exec",
+			"name": "gameboy: generate",
+			"shell_cmd": "cmake $folder -DCMAKE_BUILD_TYPE=Debug -Bbuild -GNinja",
+		},
+		{
+			"target": "terminus_exec",
+			"name": "gameboy: build",
+			"shell_cmd": "ninja -C build",
+		},
+		{
+			"target": "terminus_exec",
+			"name": "gameboy: execute",
+			"shell_cmd": "$folder/build/gameboy",
+		},
+		{
+			"target": "terminus_exec",
+			"name": "gameboy: generate, build & execute",
+			"shell_cmd": "cmake $folder -DCMAKE_BUILD_TYPE=Debug -Bbuild -GNinja && ninja -C build && cls && $folder/build/client/client",
+		}
+	],
+}

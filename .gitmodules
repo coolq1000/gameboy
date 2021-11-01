@@ -1,3 +1,3 @@
-[submodule ".\\client\\deps\\sfml"]
-	path = .\\client\\deps\\sfml
-	url = https://github.com/SFML/SFML
+[submodule "client/deps/sfml"]
+	path = client/deps/sfml
+	url = https://github.com/SFML/SFML.git

@@ -14,7 +14,7 @@ void ppu_destroy(ppu_t* ppu)
 
 void ppu_update_ly(ppu_t* ppu, mmu_t* mmu)
 {
-	ppu->line = (ppu->line + 1) % LINE_MAX;
+	ppu->line = (ppu->line + 1) % SCANLINE_MAX;
 	mmu->io[MMAP_IO_LY & 0xFF] = ppu->line;
 	// todo: check lyc in here?
 }
@@ -31,7 +31,7 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 			ppu_update_ly(ppu, mmu);
 			// todo: check ly == lyc
 
-			if (ppu->line == LINE_V_BLANK)
+			if (ppu->line == SCANLINE_V_BLANK)
 			{
 				cpu_request(cpu, mmu, INT_V_BLANK_INDEX);
 				ppu->mode = MODE_V_BLANK;

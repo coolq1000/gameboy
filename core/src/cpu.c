@@ -45,7 +45,7 @@ void cpu_fault(cpu_t* cpu, mmu_t* mmu, opc_t* opc, const char* message)
 
 void cpu_trace(cpu_t* cpu, opc_t* opc)
 {
-	printf("[+] 0x%lX: %s\n", cpu->registers.pc, opc->disasm);
+	printf("[+] 0x%X: %s\n", cpu->registers.pc, opc->disasm);
 }
 
 void cpu_stack_trace(cpu_t* cpu, mmu_t* mmu)
@@ -1018,8 +1018,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		}
 		break;
 	case 0xCB: /* prefix cb */
-		uint8_t opcode_cb = imm8;
-		cpu_execute_cb(cpu, mmu, opcode_cb);
+		cpu_execute_cb(cpu, mmu, imm8);
 		break;
 	case 0xCC: /* call z, a16 */
 		// OPERATION

@@ -12,8 +12,8 @@
 #define CYCLES_LCD_TRANSFER	0xAF
 #define CYCLES_LINE			456
 
-#define LINE_V_BLANK	144
-#define LINE_MAX		153
+#define SCANLINE_V_BLANK	144
+#define SCANLINE_MAX		153
 
 typedef enum
 {
