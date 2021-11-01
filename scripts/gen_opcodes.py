@@ -35,9 +35,13 @@ with open('opcodes.json') as f:
 	opcodes = json.loads(f.read())
 
 	generated = {}
+	generated_cb = {}
 
 	cases = ''
 	table = ''
+
+	cases_cb = ''
+	table_cb = ''
 
 	# generate unprefixed opcode implementations and table entries
 	for opcode in opcodes['unprefixed']:
@@ -45,8 +49,14 @@ with open('opcodes.json') as f:
 		generation = generate_opc(int(opcode, 16), definition['mnemonic'], definition['flags_ZNHC'], definition.get('operand1', None), definition.get('operand2', None), definition['bytes'], min(definition['cycles']))
 		generated[opcode] = generation
 
+	for opcode in opcodes['cbprefixed']:
+		definition = opcodes['cbprefixed'][opcode]
+		generation = generate_opc(int(opcode, 16), definition['mnemonic'], definition['flags_ZNHC'], definition.get('operand1', None), definition.get('operand2', None), definition['bytes'], min(definition['cycles']))
+		generated_cb[opcode] = generation
+
 	# sort generated opcodes
 	generated = {k: v for k, v in sorted(generated.items(), key=lambda item: int(item[0], 16))}
+	generated_cb = {k: v for k, v in sorted(generated_cb.items(), key=lambda item: int(item[0], 16))}
 
 	# create final code
 	for generation in generated.values():
@@ -54,4 +64,10 @@ with open('opcodes.json') as f:
 		cases += code
 		table += entry + '\n'
 
-	print(cases, table)
+	for generation in generated_cb.values():
+		code, entry = generation
+		cases_cb += code
+		table_cb += entry + '\n'
+
+	# print(cases, table)
+	print(cases_cb, table_cb)

@@ -3,6 +3,7 @@
 #define PPU_H
 
 #include "mmu.h"
+#include "cpu.h"
 
 #define CYCLES_ELAPSED(ppu, num_cycles) (ppu->cycles >= num_cycles)
 
@@ -33,6 +34,6 @@ void ppu_create(ppu_t* ppu);
 void ppu_destroy(ppu_t* ppu);
 
 void ppu_update_ly(ppu_t* ppu, mmu_t* mmu);
-void ppu_cycle(ppu_t* ppu, mmu_t* mmu, size_t cycles);
+void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles);
 
 #endif

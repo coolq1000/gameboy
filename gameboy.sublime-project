@@ -7,7 +7,7 @@
 		{
 			"target": "terminus_exec",
 			"name": "gameboy: generate",
-			"shell_cmd": "cmake $folder -Bbuild -GNinja",
+			"shell_cmd": "cmake $folder -DCMAKE_BUILD_TYPE=Debug -Bbuild -GNinja",
 		},
 		{
 			"target": "terminus_exec",
@@ -22,7 +22,7 @@
 		{
 			"target": "terminus_exec",
 			"name": "gameboy: generate, build & execute",
-			"shell_cmd": "cmake $folder -Bbuild -GNinja && ninja -C build && cls && $folder/build/client/client.exe",
+			"shell_cmd": "cmake $folder -DCMAKE_BUILD_TYPE=Debug -Bbuild -GNinja && ninja -C build && cls && $folder/build/client/client.exe",
 		}
 	],
 }

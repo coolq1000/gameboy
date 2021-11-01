@@ -16,5 +16,6 @@ typedef struct
 } opc_t;
 
 extern opc_t opc_opcodes[256];
+extern opc_t opc_opcodes_cb[256];
 
 #endif

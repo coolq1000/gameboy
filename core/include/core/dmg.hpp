@@ -2,8 +2,10 @@
 #ifndef DMG_HPP
 #define DMG_HPP
 
-// namespace gmb
-// {
+#include <string>
+
+namespace gmb_c
+{
 	extern "C"
 	{
 		#include "cpu.h"
@@ -13,94 +15,56 @@
 		#include "ppu.h"
 		#include "rom.h"
 	}
-// }
+}
 
-// namespace dmg
-// {
-// 	class cpu
-// 	{
-// 	public:
+namespace gmb
+{
+	class rom_t
+	{
+	public:
 
-// 		gmb::cpu_t obj;
+		gmb_c::rom_t obj;
 
-// 		inline cpu()
-// 		{
-// 			gmb::cpu_create(&obj);
-// 		}
+		inline rom_t(const std::string&& path)
+		{
+			gmb_c::rom_create(&obj, path.c_str());
+		}
 
-// 		inline ~cpu()
-// 		{
-// 			gmb::cpu_destroy(&obj);
-// 		}
-// 	};
+		inline ~rom_t()
+		{
+			gmb_c::rom_destroy(&obj);
+		}
+	};
 
-// 	class rom
-// 	{
-// 	public:
+	class dmg_t
+	{
+	public:
 
-// 		gmb::rom_t obj;
+		gmb_c::dmg_t obj;
 
-// 		inline rom()
-// 		{
-// 			gmb::rom_create(&obj);
-// 		}
+		gmb_c::cpu_t& cpu;
+		gmb_c::mmu_t& mmu;
+		gmb_c::ppu_t& ppu;
 
-// 		inline ~rom()
-// 		{
-// 			gmb::rom_destroy(&obj);
-// 		}
-// 	};
+		inline dmg_t(rom_t&& cart)
+			:
+			cpu(obj.cpu),
+			ppu(obj.ppu),
+			mmu(obj.mmu)
+		{
+			gmb_c::dmg_create(&obj, &cart.obj);
+		}
 
-// 	class mmu
-// 	{
-// 	public:
+		inline ~dmg_t()
+		{
+			gmb_c::dmg_destroy(&obj);
+		}
 
-// 		gmb::mmu_t obj;
-
-// 		inline mmu()
-// 		{
-// 			gmb::mmu_create(&obj);
-// 		}
-
-// 		inline ~mmu()
-// 		{
-// 			gmb::mmu_destroy(&obj);
-// 		}
-// 	};
-
-// 	class ppu
-// 	{
-// 	public:
-
-// 		gmb::ppu_t obj;
-
-// 		inline ppu()
-// 		{
-// 			gmb::ppu_create(&obj);
-// 		}
-
-// 		inline ~ppu()
-// 		{
-// 			gmb::ppu_destroy(&obj);
-// 		}
-// 	};
-
-// 	class dmg
-// 	{
-// 	public:
-
-// 		gmb::dmg_t obj;
-
-// 		inline dmg(rom& cart)
-// 		{
-// 			gmb::dmg_create(&obj, &cart);
-// 		}
-
-// 		inline ~dmg()
-// 		{
-// 			gmb::dmg_destroy(&obj);
-// 		}
-// 	};
-// }
+		inline void cycle()
+		{
+			gmb_c::dmg_cycle(&obj);
+		}
+	};
+}
 
 #endif

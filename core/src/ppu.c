@@ -19,7 +19,7 @@ void ppu_update_ly(ppu_t* ppu, mmu_t* mmu)
 	// todo: check lyc in here?
 }
 
-void ppu_cycle(ppu_t* ppu, mmu_t* mmu, size_t cycles)
+void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 {
 	ppu->cycles += cycles;
 
@@ -33,7 +33,7 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, size_t cycles)
 
 			if (ppu->line == LINE_V_BLANK)
 			{
-				// todo: request vblank interrupt
+				cpu_request(cpu, mmu, INT_V_BLANK_INDEX);
 				ppu->mode = MODE_V_BLANK;
 			}
 			else

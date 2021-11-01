@@ -3485,7 +3485,7 @@
         "-", 
         "-"
       ], 
-      "operand1": "(HL)", 
+      "operand1": "HL", 
       "operand_count": 1, 
       "bytes": 1, 
       "cycles": [

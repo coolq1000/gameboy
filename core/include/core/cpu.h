@@ -12,6 +12,8 @@
 #define IS_ZERO(reg) (!reg)
 #define HALF_CARRY(a, b) (((a + b) & 0x10) > 0)
 #define FULL_CARRY(a, b) (((a + b) & 0x100) > 0)
+#define DOUBLE_HALF_CARRY(a, b) (((a + b) & 0x100) > 0)
+#define DOUBLE_FULL_CARRY(a, b) (((a + b) & 0x1000) > 0)
 
 /* interrupts */
 #define IRF 0xFF0F /* interrupt request flag */
@@ -75,12 +77,14 @@ typedef struct cpu
 void cpu_create(cpu_t* cpu);
 void cpu_destroy(cpu_t* cpu);
 
-void cpu_fault(cpu_t* cpu, opc_t* opc, const char* message);
+void cpu_fault(cpu_t* cpu, mmu_t* mmu, opc_t* opc, const char* message);
 void cpu_trace(cpu_t* cpu, opc_t* opc);
+void cpu_stack_trace(cpu_t* cpu, mmu_t* mmu);
 void cpu_dump(cpu_t* cpu);
 void cpu_call(cpu_t* cpu, mmu_t* mmu, uint16_t address);
 void cpu_ret(cpu_t* cpu, mmu_t* mmu);
 void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode);
+void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode);
 void cpu_request(cpu_t* cpu, mmu_t* mmu, uint8_t index);
 void cpu_interrupt(cpu_t* cpu, mmu_t* mmu, uint16_t address);
 void cpu_cycle(cpu_t* cpu, mmu_t* mmu);

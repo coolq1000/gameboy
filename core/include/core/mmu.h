@@ -8,6 +8,8 @@
 #define MMAP_IO_LY 0xFF44
 #define MMAP_IO_LYC 0xFF45
 
+extern int flag_hit;
+
 typedef struct
 {
 	/* rom */
