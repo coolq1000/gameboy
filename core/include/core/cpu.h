@@ -9,11 +9,11 @@
 #include "opc.h"
 
 /* flags */
-#define IS_ZERO(reg) (!reg)
-#define HALF_CARRY(a, b) (((a + b) & 0x10) > 0)
-#define FULL_CARRY(a, b) (((a + b) & 0x100) > 0)
-#define DOUBLE_HALF_CARRY(a, b) (((a + b) & 0x100) > 0)
-#define DOUBLE_FULL_CARRY(a, b) (((a + b) & 0x1000) > 0)
+#define IS_ZERO(reg) (!(reg))
+#define HALF_CARRY(a, b) ((((a) + (b)) & 0x10) > 0)
+#define FULL_CARRY(a, b) ((((a) + (b)) & 0x100) > 0)
+#define DOUBLE_HALF_CARRY(a, b) ((((a) + (b)) & 0x100) > 0)
+#define DOUBLE_FULL_CARRY(a, b) ((((a) + (b)) & 0x1000) > 0)
 
 /* interrupts */
 #define IRF 0xFF0F /* interrupt request flag */

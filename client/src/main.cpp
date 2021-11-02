@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <deque>
 #include <core/dmg.hpp>
 #include <SFML/Graphics.hpp>
 
@@ -9,6 +10,16 @@ constexpr auto lcd_height = 144;
 
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
+
+std::deque<uint16_t> exe_stack;
+
+void atexit_handler()
+{
+	for (auto& addr : exe_stack)
+	{
+		printf("%X\n", addr);
+	}
+}
 
 class application_t
 {
@@ -41,6 +52,7 @@ public:
 
 	void run()
 	{
+		std::atexit(atexit_handler);
 		// for (size_t i = 0; i < 11001840; i++)
 		// while (gameboy.cpu.registers.pc != 0x6AAA)
 		// {
@@ -51,7 +63,13 @@ public:
 
 		while (window.isOpen())
 		{
-			for (int i = 0; i < 1000000; i++) gmb_c::dmg_cycle(&gameboy);
+			for (int i = 0; i < 1000000; i++)
+			{
+				exe_stack.push_front(gameboy.cpu.registers.pc);
+				while (exe_stack.size() > 100) exe_stack.pop_back();
+				gmb_c::dmg_cycle(&gameboy);
+			}
+
 			// gmb_c::ppu_cycle(&gameboy.ppu, &gameboy.mmu, &gameboy.cpu, 4);
 
 			sf::Event event;

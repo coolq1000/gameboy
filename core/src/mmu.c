@@ -54,7 +54,7 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 		case 0xC00: case 0xD00:
 			return &mmu->wram[0][address - 0xF000];
 		case 0xE00:
-			return address < 0xFEA0 ? &mmu->oam[address & 0xFF] : &mmu->null_mem;
+			return address < 0xFEA0 ? &mmu->oam[address - 0xFE00] : &mmu->null_mem;
 		case 0xF00:
 			if (address == 0xFFFF)
 			{
@@ -66,11 +66,11 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 				{
 				case 0x00:
 					mmu->io[0x00] = 0xEF;
-					return &mmu->io[address & 0xFF];
+					return &mmu->io[address - 0xFF00];
 				case 0x10: case 0x20: case 0x30:
 				case 0x40: case 0x50: case 0x60:
 				case 0x70:
-					return &mmu->io[address & 0xFF];
+					return &mmu->io[address - 0xFF00];
 				}
 				return &mmu->hram[address - 0xFF80];
 			}
@@ -93,10 +93,15 @@ uint16_t mmu_peek16(mmu_t* mmu, uint16_t address)
 
 void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 {
-	// if (address >= 0x8000 && address < 0xA000)
-	// {
-	// 	printf("wrote vram: %X = %X\n", address, value);
-	// }
+	if (address == 0xFF46)
+	{
+		/* dma transfer */
+		for (uint16_t copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
+		{
+			mmu_poke8(mmu, 0xFE00 + (copy_addr & 0xFF), mmu_peek8(mmu, copy_addr));
+		}
+		return;
+	}
 	*mmu_map(mmu, address) = value;
 }
 

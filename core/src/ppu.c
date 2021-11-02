@@ -95,6 +95,22 @@ uint8_t ppu_get_pixel(ppu_t* ppu, size_t x, size_t y)
 	return ppu->lcd[x + y * LCD_WIDTH];
 }
 
+uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, size_t tile_y)
+{
+	uint16_t tile_addr = tile_id * 8 * 2;
+
+	uint8_t pixel_x = tile_x % 8;
+	uint8_t pixel_y = tile_y % 8;
+
+	uint8_t pixel_line_1 = mmu->vram[(tile_addr + pixel_y * 2) + 0];
+	uint8_t pixel_line_2 = mmu->vram[(tile_addr + pixel_y * 2) + 1];
+
+	uint8_t pixel_mask = 0x80 >> pixel_x;
+	uint8_t pixel = (((pixel_line_1 & pixel_mask) != 0) << 1) | ((pixel_line_2 & pixel_mask) != 0);
+
+	return pixel;
+}
+
 void ppu_render_background(ppu_t* ppu, mmu_t* mmu, size_t line)
 {
 	for (size_t x = 0; x < LCD_WIDTH; x++)
@@ -102,18 +118,8 @@ void ppu_render_background(ppu_t* ppu, mmu_t* mmu, size_t line)
 		size_t tile_x = x / 8;
 		size_t tile_y = line / 8;
 		uint8_t tile_id = mmu_peek8(mmu, 0x9800 + tile_x + tile_y * 32);
-		uint16_t tile_addr = tile_id * 8 * 2;
 
-		uint8_t pixel_x = x % 8;
-		uint8_t pixel_y = line % 8;
-
-		uint8_t pixel_line_1 = mmu->vram[(tile_addr + pixel_y * 2) + 0];
-		uint8_t pixel_line_2 = mmu->vram[(tile_addr + pixel_y * 2) + 1];
-
-		uint8_t pixel_mask = 0x80 >> pixel_x;
-		uint8_t pixel = (((pixel_line_1 & pixel_mask) != 0) << 1) | ((pixel_line_2 & pixel_mask) != 0);
-
-		ppu_set_pixel(ppu, x, line, pixel);
+		ppu_set_pixel(ppu, x, line, ppu_get_tile(ppu, mmu, tile_id, x, line));
 	}
 }
 
@@ -128,13 +134,20 @@ void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t line)
 		uint8_t sprite_tile_attributes = mmu->oam[sprite_address + 3];
 
 		/* check sprite is active */
-		if (sprite_y | sprite_x)
+		if (sprite_y)
 		{
-			if (line >= sprite_y && line < sprite_y + 8)
+			if (line >= (sprite_y - 16) && line < (sprite_y - 8))
 			{
 				for (size_t x = 0; x < 8; x++)
 				{
-					ppu_set_pixel(ppu, x, line, 0x02);
+					size_t screen_x = sprite_x + x - 8;
+					size_t screen_y = line;
+
+					uint8_t pixel_x = screen_x % 8;
+					uint8_t pixel_y = screen_y % 8;
+
+					uint8_t pixel = ppu_get_tile(ppu, mmu, sprite_tile_id, pixel_x, pixel_y);
+					ppu_set_pixel(ppu, sprite_x + x - 8, line, pixel);
 				}
 			}
 		}

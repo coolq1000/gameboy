@@ -1843,74 +1843,62 @@ void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
 		break;
 	case 0x78: /* bit 7, b */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.b & 0x80);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = true;
 		break;
 	case 0x79: /* bit 7, c */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.c & 0x80);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = true;
 		break;
 	case 0x7A: /* bit 7, d */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.d & 0x80);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = true;
 		break;
 	case 0x7B: /* bit 7, e */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.e & 0x80);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = true;
 		break;
 	case 0x7C: /* bit 7, h */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.h & 0x80);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = true;
 		break;
 	case 0x7D: /* bit 7, l */
-		cpu->registers.flag_z = !(cpu->registers.l & 0x80);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.l & 0x80);
 		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = false;
+		cpu->registers.flag_h = true;
 		break;
 	case 0x7E: /* bit 7, (hl) */
-		cpu->registers.flag_z = !(mmu_peek8(mmu, cpu->registers.hl) & 0x80);
+		cpu->registers.flag_z = IS_ZERO(mmu_peek8(mmu, cpu->registers.hl) & 0x80);
 		cpu->registers.flag_n = false;
 		cpu->registers.flag_h = true;
 		break;
 	case 0x7F: /* bit 7, a */
-		cpu->registers.flag_z = !(cpu->registers.a & 0x80);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.a & 0x80);
 		cpu->registers.flag_n = false;
 		cpu->registers.flag_h = true;
 		break;
 	case 0x80: /* res 0, b */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.b &= 0xFE;
 		break;
 	case 0x81: /* res 0, c */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.c &= 0xFE;
 		break;
 	case 0x82: /* res 0, d */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.d &= 0xFE;
 		break;
 	case 0x83: /* res 0, e */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.e &= 0xFE;
 		break;
 	case 0x84: /* res 0, h */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.h &= 0xFE;
 		break;
 	case 0x85: /* res 0, l */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		cpu->registers.l &= 0xFE;
 		break;
 	case 0x86: /* res 0, (hl) */
 		mmu_poke8(mmu, cpu->registers.hl, mmu_peek8(mmu, cpu->registers.hl) & 0xFE);
