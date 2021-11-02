@@ -17,15 +17,18 @@ class application_t
 	sf::Sprite lcd_sprite;
 	std::unique_ptr<uint32_t> lcd_pixels;
 
-	gmb::dmg_t gameboy;
+	gmb_c::dmg_t gameboy;
 
 public:
 
 	application_t()
 		:
-		window(sf::VideoMode(window_width, window_height), "Gameboy"),
-		gameboy(gmb::rom_t("roms/tetris.gb"))
+		window(sf::VideoMode(window_width, window_height), "Gameboy")
 	{
+		gmb_c::rom_t rom;
+		gmb_c::rom_create(&rom, "roms/tetris.gb");
+		gmb_c::dmg_create(&gameboy, &rom);
+
 		lcd.create(lcd_width, lcd_height);
 
 		lcd_sprite = sf::Sprite(lcd);
@@ -38,16 +41,19 @@ public:
 
 	void run()
 	{
-		for (size_t i = 0; i < 30001840; i++)
-		{
-			gameboy.cycle();
-		}
+		// for (size_t i = 0; i < 11001840; i++)
+		// while (gameboy.cpu.registers.pc != 0x6AAA)
+		// {
+			
+		// }
 
-		// gmb_c::cpu_dump(&gameboy.obj.cpu);
+		// gmb_c::cpu_dump(&gameboy.cpu);
 
 		while (window.isOpen())
 		{
+			for (int i = 0; i < 1000000; i++) gmb_c::dmg_cycle(&gameboy);
 			// gmb_c::ppu_cycle(&gameboy.ppu, &gameboy.mmu, &gameboy.cpu, 4);
+
 			sf::Event event;
 			while (window.pollEvent(event))
 			{
@@ -63,7 +69,7 @@ public:
 			{
 				for (size_t y = 0; y < lcd_height; y++)
 				{
-					uint8_t pixel = gmb_c::ppu_get_pixel(&gameboy.obj.ppu, x, y);
+					uint8_t pixel = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y);
 					uint8_t r, g, b, a;
 					r = 0xFF - (pixel * 85);
 					g = 0xFF - (pixel * 85);

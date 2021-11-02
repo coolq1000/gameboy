@@ -7,6 +7,9 @@ void ppu_create(ppu_t* ppu)
 	ppu->mode = MODE_OAM;
 	ppu->cycles = 0;
 	ppu->line = 0; // todo: check this
+
+	for (size_t i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++)
+		ppu->lcd[i] = 0;
 }
 
 void ppu_destroy(ppu_t* ppu)
@@ -116,10 +119,30 @@ void ppu_render_background(ppu_t* ppu, mmu_t* mmu, size_t line)
 
 void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t line)
 {
+	for (size_t i_sprite = 0; i_sprite < 40; i_sprite++)
+	{
+		uint16_t sprite_address = i_sprite * 4;
+		uint8_t sprite_y = mmu->oam[sprite_address + 0];
+		uint8_t sprite_x = mmu->oam[sprite_address + 1];
+		uint8_t sprite_tile_id = mmu->oam[sprite_address + 2];
+		uint8_t sprite_tile_attributes = mmu->oam[sprite_address + 3];
 
+		/* check sprite is active */
+		if (sprite_y | sprite_x)
+		{
+			if (line >= sprite_y && line < sprite_y + 8)
+			{
+				for (size_t x = 0; x < 8; x++)
+				{
+					ppu_set_pixel(ppu, x, line, 0x02);
+				}
+			}
+		}
+	}
 }
 
 void ppu_render_line(ppu_t* ppu, mmu_t* mmu, size_t line)
 {
 	ppu_render_background(ppu, mmu, line);
+	ppu_render_sprites(ppu, mmu, line);
 }

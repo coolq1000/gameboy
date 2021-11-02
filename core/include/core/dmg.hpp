@@ -19,65 +19,72 @@ namespace gmb_c
 
 namespace gmb
 {
-	class rom_t
-	{
-	public:
+	// class rom_t
+	// {
+	// public:
 
-		gmb_c::rom_t obj;
+	// 	gmb_c::rom_t obj;
 
-		inline rom_t(const std::string&& path)
-		{
-			gmb_c::rom_create(&obj, path.c_str());
-		}
+	// 	inline rom_t(const std::string&& path)
+	// 	{
+	// 		gmb_c::rom_create(&obj, path.c_str());
+	// 	}
 
-		inline ~rom_t()
-		{
-			gmb_c::rom_destroy(&obj);
-		}
-	};
+	// 	inline ~rom_t()
+	// 	{
+	// 		gmb_c::rom_destroy(&obj);
+	// 	}
+	// };
 
-	class dmg_t
-	{
-	public:
+	// class dmg_t
+	// {
+	// public:
 
-		gmb_c::dmg_t obj;
+	// 	gmb_c::dmg_t obj;
+	// 	gmb_c::cpu_t& cpu;
+	// 	gmb_c::mmu_t& mmu;
+	// 	gmb_c::ppu_t& ppu;
 
-		inline dmg_t(rom_t&& cart)
-		{
-			gmb_c::dmg_create(&obj, &cart.obj);
-		}
+	// 	inline dmg_t(rom_t&& cart)
+	// 		:
+	// 		cpu(obj.cpu),
+	// 		mmu(obj.mmu),
+	// 		ppu(obj.ppu),
+	// 	{
+	// 		gmb_c::dmg_create(&obj, &cart.obj);
+	// 	}
 
-		inline ~dmg_t()
-		{
-			gmb_c::dmg_destroy(&obj);
-		}
+	// 	inline ~dmg_t()
+	// 	{
+	// 		gmb_c::dmg_destroy(&obj);
+	// 	}
 
-		template<typename T>
-		inline T peek(uint16_t address)
-		{
-			T data{};
-			for (size_t i = 0; i < sizeof(T); i++)
-			{
-				*(reinterpret_cast<uint8_t*>(&data) + i) = gmb_c::mmu_peek8(&obj.mmu, address + i);
-			}
+	// 	template<typename T>
+	// 	inline T peek(uint16_t address)
+	// 	{
+	// 		T data{};
+	// 		for (size_t i = 0; i < sizeof(T); i++)
+	// 		{
+	// 			*(reinterpret_cast<uint8_t*>(&data) + i) = gmb_c::mmu_peek8(&obj.mmu, address + i);
+	// 		}
 
-			return data;
-		}
+	// 		return data;
+	// 	}
 
-		template<typename T>
-		inline void poke(uint16_t address, T value)
-		{
-			for (size_t i = 0; i < sizeof(T); i++)
-			{
-				gmb_c::mmu_poke8(&obj.mmu, address + i, *(reinterpret_cast<uint8_t*>(&value) + i));
-			}
-		}
+	// 	template<typename T>
+	// 	inline void poke(uint16_t address, T value)
+	// 	{
+	// 		for (size_t i = 0; i < sizeof(T); i++)
+	// 		{
+	// 			gmb_c::mmu_poke8(&obj.mmu, address + i, *(reinterpret_cast<uint8_t*>(&value) + i));
+	// 		}
+	// 	}
 
-		inline void cycle()
-		{
-			gmb_c::dmg_cycle(&obj);
-		}
-	};
+	// 	inline void cycle()
+	// 	{
+	// 		gmb_c::dmg_cycle(&obj);
+	// 	}
+	// };
 }
 
 #endif
