@@ -10,80 +10,82 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-int main()
+class application_t
 {
-	sf::RenderWindow window(sf::VideoMode(window_width, window_height), "Gameboy");
-
+	sf::RenderWindow window;
 	sf::Texture lcd;
-	lcd.create(lcd_width, lcd_height);
+	sf::Sprite lcd_sprite;
+	std::unique_ptr<uint32_t> lcd_pixels;
 
-	sf::Sprite lcd_sprite(lcd);
-	auto scale_x = window_width / lcd_width;
-	auto scale_y = window_height / lcd_height;
-	lcd_sprite.scale(scale_x, scale_y);
+	gmb::dmg_t gameboy;
 
-	auto lcd_pixels = std::unique_ptr<uint32_t>(new uint32_t[lcd_width * lcd_height]());
+public:
 
-	gmb::dmg_t gameboy(gmb::rom_t("roms/tetris.gb"));
-
-	for (size_t i = 0; i < 98129; i++)
+	application_t()
+		:
+		window(sf::VideoMode(window_width, window_height), "Gameboy"),
+		gameboy(gmb::rom_t("roms/tetris.gb"))
 	{
-		gameboy.cycle();
+		lcd.create(lcd_width, lcd_height);
+
+		lcd_sprite = sf::Sprite(lcd);
+		auto scale_x = window_width / lcd_width;
+		auto scale_y = window_height / lcd_height;
+		lcd_sprite.scale(scale_x, scale_y);
+
+		lcd_pixels = std::unique_ptr<uint32_t>(new uint32_t[lcd_width * lcd_height]());
 	}
 
-	while (window.isOpen())
+	void run()
 	{
-		sf::Event event;
-		while (window.pollEvent(event))
+		for (size_t i = 0; i < 30001840; i++)
 		{
-			switch (event.type)
-			{
-			case sf::Event::Closed:
-				window.close();
-				break;
-			}
+			gameboy.cycle();
 		}
 
-		constexpr auto tile_x_max = 8;
-		constexpr auto tile_y_max = 8;
-		for (int tile_x = 0; tile_x < tile_x_max; tile_x++)
+		// gmb_c::cpu_dump(&gameboy.obj.cpu);
+
+		while (window.isOpen())
 		{
-			for (int tile_y = 0; tile_y < tile_y_max; tile_y++)
+			// gmb_c::ppu_cycle(&gameboy.ppu, &gameboy.mmu, &gameboy.cpu, 4);
+			sf::Event event;
+			while (window.pollEvent(event))
 			{
-				for (int y = 0; y < 8; y++)
+				switch (event.type)
 				{
-					uint16_t tile_address = ((y + tile_x * tile_x_max + tile_y * tile_x_max * tile_y_max) * 2);
-
-					uint8_t line1 = gameboy.mmu.vram[tile_address + 0];
-					uint8_t line2 = gameboy.mmu.vram[tile_address + 1];
-					for (int x = 0; x < 8; x++)
-					{
-						uint8_t pixel_bit_1 = (line1 >> 7) & 0x1;
-						uint8_t pixel_bit_2 = (line2 >> 7) & 0x1;
-						uint8_t pixel = pixel_bit_1 | (pixel_bit_2 << 1);
-
-						uint8_t r, g, b, a;
-						r = 0xFF - (pixel * 64);
-						g = 0xFF - (pixel * 64);
-						b = 0xFF - (pixel * 64);
-						a = 0xFF;
-
-						lcd_pixels.get()[(x + (tile_x * 8)) + ((y + tile_y * 8) * 160)] = (a << 24) | (b << 16) | (g << 8) | r;
-						line1 <<= 1;
-						line2 <<= 1;
-					}
-					// printf("\n");
+				case sf::Event::Closed:
+					window.close();
+					break;
 				}
 			}
+
+			for (size_t x = 0; x < lcd_width; x++)
+			{
+				for (size_t y = 0; y < lcd_height; y++)
+				{
+					uint8_t pixel = gmb_c::ppu_get_pixel(&gameboy.obj.ppu, x, y);
+					uint8_t r, g, b, a;
+					r = 0xFF - (pixel * 85);
+					g = 0xFF - (pixel * 85);
+					b = 0xFF - (pixel * 85);
+					a = 0xFF;
+
+					lcd_pixels.get()[x + (y * 160)] = (a << 24) | (b << 16) | (g << 8) | r;
+				}
+			}
+
+			lcd.update(reinterpret_cast<sf::Uint8*>(lcd_pixels.get()));
+
+			window.draw(lcd_sprite);
+			window.display();
 		}
-
-		lcd.update(reinterpret_cast<sf::Uint8*>(lcd_pixels.get()));
-
-		window.draw(lcd_sprite);
-		window.display();
 	}
+};
 
-	printf("%llX\n", gmb_c::mmu_peek8(&gameboy.mmu, 0x9820));
-
+int main()
+{
+	application_t app;
+	app.run();
+	//0x9820
 	return EXIT_SUCCESS;
 }

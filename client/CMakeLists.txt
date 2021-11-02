@@ -18,3 +18,5 @@ target_include_directories(client PRIVATE include)
 
 target_include_directories(client PRIVATE deps/sfml/include)
 target_link_libraries(client sfml-graphics sfml-audio)
+
+target_compile_options(client PRIVATE -Wno-switch)
