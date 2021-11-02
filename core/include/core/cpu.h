@@ -30,6 +30,11 @@
 #define INT_SERIAL_INDEX	(1 << 3)
 #define INT_JOYPAD_INDEX	(1 << 4)
 
+#define INT_TIMER_DIV	0xFF04
+#define INT_TIMER_TIMA	0xFF05
+#define INT_TIMER_TMA	0xFF06
+#define INT_TIMER_TAC	0xFF07
+
 typedef struct cpu
 {
 	struct
@@ -64,6 +69,8 @@ typedef struct cpu
 	struct
 	{
 		uint8_t cycles;
+		uint16_t div_diff;
+		uint8_t tima_mod;
 	} clock;
 	struct
 	{

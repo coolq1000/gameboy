@@ -42,15 +42,7 @@ namespace gmb
 
 		gmb_c::dmg_t obj;
 
-		gmb_c::cpu_t& cpu;
-		gmb_c::mmu_t& mmu;
-		gmb_c::ppu_t& ppu;
-
 		inline dmg_t(rom_t&& cart)
-			:
-			cpu(obj.cpu),
-			ppu(obj.ppu),
-			mmu(obj.mmu)
 		{
 			gmb_c::dmg_create(&obj, &cart.obj);
 		}
@@ -58,6 +50,27 @@ namespace gmb
 		inline ~dmg_t()
 		{
 			gmb_c::dmg_destroy(&obj);
+		}
+
+		template<typename T>
+		inline T peek(uint16_t address)
+		{
+			T data{};
+			for (size_t i = 0; i < sizeof(T); i++)
+			{
+				*(reinterpret_cast<uint8_t*>(&data) + i) = gmb_c::mmu_peek8(&obj.mmu, address + i);
+			}
+
+			return data;
+		}
+
+		template<typename T>
+		inline void poke(uint16_t address, T value)
+		{
+			for (size_t i = 0; i < sizeof(T); i++)
+			{
+				gmb_c::mmu_poke8(&obj.mmu, address + i, *(reinterpret_cast<uint8_t*>(&value) + i));
+			}
 		}
 
 		inline void cycle()
