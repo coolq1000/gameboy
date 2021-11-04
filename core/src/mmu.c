@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void mmu_create(mmu_t* mmu, rom_t* rom)
 {
@@ -11,7 +12,14 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 	mmu->null_mem = 0;
 
 	/* clear out memory */
-	for (uint16_t address = 0x8000; address < 0xFFFE; address++) mmu_poke8(mmu, address, 0x00);
+	memset(mmu->vram, 0, sizeof(mmu->vram));
+	memset(mmu->xram, 0, sizeof(mmu->xram));
+	for (size_t i = 0; i < sizeof(mmu->wram) / sizeof(mmu->wram[0]); i++)
+		memset(mmu->wram[i], 0, sizeof(mmu->wram[0]));
+	memset(mmu->oam, 0, sizeof(mmu->oam));
+	memset(mmu->io, 0, sizeof(mmu->io));
+	memset(mmu->hram, 0, sizeof(mmu->hram));
+	mmu->interrupt_enable = 0;
 }
 
 void mmu_destroy(mmu_t* mmu)
@@ -65,7 +73,27 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 				switch (address & 0xF0)
 				{
 				case 0x00:
-					mmu->io[0x00] = 0xEF;
+					uint8_t original = mmu->io[0x00] & 0x30;
+					uint8_t input = 0b11000000;
+					if (!(mmu->io[0x00] & 0x10)) /* directions */
+					{
+						input |= 0b00000001 & (mmu->buttons.right	? 0x00 : 0xFF);
+						input |= 0b00000010 & (mmu->buttons.left	? 0x00 : 0xFF);
+						input |= 0b00000100 & (mmu->buttons.up		? 0x00 : 0xFF);
+						input |= 0b00001000 & (mmu->buttons.down	? 0x00 : 0xFF);
+					}
+					else if (!(mmu->io[0x00] & 0x20)) /* actions */
+					{
+						input |= 0b00000001 & (mmu->buttons.a		? 0x00 : 0xFF);
+						input |= 0b00000010 & (mmu->buttons.b		? 0x00 : 0xFF);
+						input |= 0b00000100 & (mmu->buttons.select	? 0x00 : 0xFF);
+						input |= 0b00001000 & (mmu->buttons.start	? 0x00 : 0xFF);
+					}
+					else
+					{
+						input |= 0b00001111;
+					}
+					mmu->io[0x00] = input | original;
 					return &mmu->io[address - 0xFF00];
 				case 0x10: case 0x20: case 0x30:
 				case 0x40: case 0x50: case 0x60:
@@ -93,16 +121,23 @@ uint16_t mmu_peek16(mmu_t* mmu, uint16_t address)
 
 void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 {
-	if (address == 0xFF46)
+	if (address >= 0x8000) // disallow writing to rom
 	{
-		/* dma transfer */
-		for (uint16_t copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
+		switch (address)
 		{
-			mmu_poke8(mmu, 0xFE00 + (copy_addr & 0xFF), mmu_peek8(mmu, copy_addr));
+		case 0xFF00:
+			uint8_t input = mmu->io[0x00];
+			mmu->io[0x00] = (value & 0x30) | (input & 0xCF); // only permit writing to bits 4 & 5
+			return;
+		case 0xFF46: /* dma transfer */
+			for (uint16_t copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
+			{
+				mmu_poke8(mmu, 0xFE00 + (copy_addr & 0xFF), mmu_peek8(mmu, copy_addr));
+			}
+			return;
 		}
-		return;
+		*mmu_map(mmu, address) = value;
 	}
-	*mmu_map(mmu, address) = value;
 }
 
 void mmu_poke16(mmu_t* mmu, uint16_t address, uint16_t value)

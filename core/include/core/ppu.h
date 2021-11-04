@@ -32,6 +32,7 @@ typedef struct
 	uint32_t cycles;
 	uint8_t line;
 	uint8_t lcd[LCD_WIDTH * LCD_HEIGHT];
+	void (*v_blank_callback)();
 } ppu_t;
 
 void ppu_create(ppu_t* ppu);

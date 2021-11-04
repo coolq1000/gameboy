@@ -25,6 +25,13 @@ typedef struct
     uint8_t hram[0x7E];
     uint8_t interrupt_enable;
 
+    struct
+    {
+        uint8_t start, select;
+        uint8_t a, b;
+        uint8_t down, up, left, right;
+    } buttons;
+
     uint8_t null_mem;
 } mmu_t;
 

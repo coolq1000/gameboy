@@ -7,6 +7,7 @@ void ppu_create(ppu_t* ppu)
 	ppu->mode = MODE_OAM;
 	ppu->cycles = 0;
 	ppu->line = 0; // todo: check this
+	ppu->v_blank_callback = NULL;
 
 	for (size_t i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++)
 		ppu->lcd[i] = 0;
@@ -26,7 +27,7 @@ void ppu_update_ly(ppu_t* ppu, mmu_t* mmu)
 
 void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 {
-	ppu->cycles += cycles;
+	ppu->cycles += cycles / 4;
 
 	switch (ppu->mode)
 	{
@@ -39,6 +40,7 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 			if (ppu->line == SCANLINE_V_BLANK)
 			{
 				cpu_request(cpu, mmu, INT_V_BLANK_INDEX);
+				if (ppu->v_blank_callback) ppu->v_blank_callback();
 				ppu->mode = MODE_V_BLANK;
 			}
 			else
