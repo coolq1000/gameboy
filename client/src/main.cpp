@@ -37,6 +37,8 @@ namespace app
 
 		lcd_pixels = std::unique_ptr<uint32_t>(new uint32_t[lcd_width * lcd_height]());
 
+		window.setFramerateLimit(60);
+
 		gameboy.ppu.v_blank_callback = draw;
 	}
 
@@ -44,19 +46,7 @@ namespace app
 	{
 		while (window.isOpen())
 		{
-			for (size_t i_cycle = 0; i_cycle < 6; i_cycle++)
-			{
-				gmb_c::dmg_cycle(&gameboy);
-			}
-
-			gameboy.mmu.buttons.start = sf::Keyboard::isKeyPressed(sf::Keyboard::Enter);
-			gameboy.mmu.buttons.select = sf::Keyboard::isKeyPressed(sf::Keyboard::Backspace);
-			gameboy.mmu.buttons.a = sf::Keyboard::isKeyPressed(sf::Keyboard::Z);
-			gameboy.mmu.buttons.b = sf::Keyboard::isKeyPressed(sf::Keyboard::X);
-			gameboy.mmu.buttons.down = sf::Keyboard::isKeyPressed(sf::Keyboard::Down);
-			gameboy.mmu.buttons.up = sf::Keyboard::isKeyPressed(sf::Keyboard::Up);
-			gameboy.mmu.buttons.left = sf::Keyboard::isKeyPressed(sf::Keyboard::Left);
-			gameboy.mmu.buttons.right = sf::Keyboard::isKeyPressed(sf::Keyboard::Right);
+			gmb_c::dmg_cycle(&gameboy);
 		}
 	}
 
@@ -70,6 +60,32 @@ namespace app
 			case sf::Event::Closed:
 				window.close();
 				break;
+			case sf::Event::KeyPressed:
+				switch (event.key.code)
+				{
+				case sf::Keyboard::Enter: gameboy.mmu.buttons.start = true; break;
+				case sf::Keyboard::Backspace: gameboy.mmu.buttons.select = true; break;
+				case sf::Keyboard::Z: gameboy.mmu.buttons.a = true; break;
+				case sf::Keyboard::X: gameboy.mmu.buttons.b = true; break;
+				case sf::Keyboard::Down: gameboy.mmu.buttons.down = true; break;
+				case sf::Keyboard::Up: gameboy.mmu.buttons.up = true; break;
+				case sf::Keyboard::Left: gameboy.mmu.buttons.left = true; break;
+				case sf::Keyboard::Right: gameboy.mmu.buttons.right = true; break;
+				}
+				break;
+			case sf::Event::KeyReleased:
+				switch (event.key.code)
+				{
+				case sf::Keyboard::Enter: gameboy.mmu.buttons.start = false; break;
+				case sf::Keyboard::Backspace: gameboy.mmu.buttons.select = false; break;
+				case sf::Keyboard::Z: gameboy.mmu.buttons.a = false; break;
+				case sf::Keyboard::X: gameboy.mmu.buttons.b = false; break;
+				case sf::Keyboard::Down: gameboy.mmu.buttons.down = false; break;
+				case sf::Keyboard::Up: gameboy.mmu.buttons.up = false; break;
+				case sf::Keyboard::Left: gameboy.mmu.buttons.left = false; break;
+				case sf::Keyboard::Right: gameboy.mmu.buttons.right = false; break;
+				}
+				break;
 			}
 		}
 
@@ -78,11 +94,11 @@ namespace app
 			for (size_t y = 0; y < lcd_height; y++)
 			{
 				uint8_t pixel = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y);
-				uint8_t r, g, b, a;
-				r = 0xFF - (pixel * 68);
-				g = 0xFF - (pixel * 73);
-				b = 0xFF - (pixel * 73);
-				a = 0xFF;
+				uint8_t r = 0, g = 0, b = 0, a = 0xFF;
+
+				r = gmb_c::ppu_palette[pixel][0];
+				g = gmb_c::ppu_palette[pixel][1];
+				b = gmb_c::ppu_palette[pixel][2];
 
 				lcd_pixels.get()[x + (y * 160)] = (a << 24) | (b << 16) | (g << 8) | r;
 			}

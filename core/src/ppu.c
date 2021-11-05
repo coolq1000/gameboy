@@ -2,6 +2,14 @@
 
 #include <stdio.h>
 
+uint8_t ppu_palette[4][3] =
+{
+	{ 0xE0, 0xF0, 0xD0 },
+	{ 0x88, 0xC0, 0x70 },
+	{ 0x34, 0x68, 0x56 },
+	{ 0x08, 0x18, 0x20 }
+};
+
 void ppu_create(ppu_t* ppu)
 {
 	ppu->mode = MODE_OAM;
@@ -104,8 +112,9 @@ uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, siz
 	uint8_t pixel_x = tile_x % 8;
 	uint8_t pixel_y = tile_y % 8;
 
-	uint8_t pixel_line_1 = mmu->vram[(tile_addr + pixel_y * 2) + 0];
-	uint8_t pixel_line_2 = mmu->vram[(tile_addr + pixel_y * 2) + 1];
+	/* read out each line part, assumes little-endian */
+	uint8_t pixel_line_1 = mmu->vram[(tile_addr + pixel_y * 2) + 1];
+	uint8_t pixel_line_2 = mmu->vram[(tile_addr + pixel_y * 2) + 0];
 
 	uint8_t pixel_mask = 0x80 >> pixel_x;
 	uint8_t pixel = (((pixel_line_1 & pixel_mask) != 0) << 1) | ((pixel_line_2 & pixel_mask) != 0);
