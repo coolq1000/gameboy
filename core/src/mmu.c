@@ -73,6 +73,7 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 				switch (address & 0xF0)
 				{
 				case 0x00:
+				{
 					uint8_t original = mmu->io[0x00] & 0x30;
 					uint8_t input = 0b11000000;
 					if (!(mmu->io[0x00] & 0x10)) /* directions */
@@ -95,6 +96,7 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 					}
 					mmu->io[0x00] = input | original;
 					return &mmu->io[address - 0xFF00];
+				}
 				case 0x10: case 0x20: case 0x30:
 				case 0x40: case 0x50: case 0x60:
 				case 0x70:
@@ -126,9 +128,11 @@ void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 		switch (address)
 		{
 		case 0xFF00:
+		{
 			uint8_t input = mmu->io[0x00];
 			mmu->io[0x00] = (value & 0x30) | (input & 0xCF); // only permit writing to bits 4 & 5
 			return;
+		}
 		case 0xFF46: /* dma transfer */
 			for (uint16_t copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
 			{

@@ -9,7 +9,7 @@ set(SOURCE
 
 set(SFML_INSTALL_XCODE_TEMPLATES TRUE)
 set(CMAKE_WARN_DEPRECATED FALSE)
-set(BUILD_SHARED_LIBS FALSE)
+set(BUILD_SHARED_LIBS TRUE)
 add_subdirectory(deps/sfml)
 
 add_executable(client ${SOURCE})

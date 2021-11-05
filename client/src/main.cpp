@@ -1,7 +1,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <deque>
 #include <core/dmg.hpp>
 #include <SFML/Graphics.hpp>
 
@@ -13,7 +12,7 @@ constexpr auto window_height = lcd_height * 4;
 
 namespace app
 {
-	sf::RenderWindow window(sf::VideoMode(window_width, window_height), "Gameboy");
+	sf::RenderWindow window;
 	sf::Texture lcd;
 	sf::Sprite lcd_sprite;
 	std::unique_ptr<uint32_t> lcd_pixels;
@@ -27,6 +26,8 @@ namespace app
 		gmb_c::rom_t rom;
 		gmb_c::rom_create(&rom, "roms/tetris.gb");
 		gmb_c::dmg_create(&gameboy, &rom);
+
+		window.create(sf::VideoMode(window_width, window_height), "Gameboy");
 
 		lcd.create(lcd_width, lcd_height);
 
