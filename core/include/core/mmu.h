@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "rom.h"
 
+#define MMAP_IO_LCDC 0xFF40
 #define MMAP_IO_LY 0xFF44
 #define MMAP_IO_LYC 0xFF45
 

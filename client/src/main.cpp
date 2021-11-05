@@ -27,7 +27,7 @@ namespace app
 		gmb_c::rom_create(&rom, "roms/tetris.gb");
 		gmb_c::dmg_create(&gameboy, &rom);
 
-		window.create(sf::VideoMode(window_width, window_height), "Gameboy");
+		window.create(sf::VideoMode(window_width, window_height), "gameboy");
 
 		lcd.create(lcd_width, lcd_height);
 

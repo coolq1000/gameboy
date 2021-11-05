@@ -105,16 +105,23 @@ uint8_t ppu_get_pixel(ppu_t* ppu, size_t x, size_t y)
 	return ppu->lcd[x + y * LCD_WIDTH];
 }
 
-uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, size_t tile_y)
+uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, size_t tile_y, bool is_sprite)
 {
 	uint16_t tile_addr = tile_id * 8 * 2;
 
 	uint8_t pixel_x = tile_x % 8;
 	uint8_t pixel_y = tile_y % 8;
 
+	uint16_t offset = 0x00;
+
+	if (!is_sprite && (mmu->wram[0][MMAP_IO_LCDC - 0xFF00] & 0x10))
+	{
+		offset = 0x1000;
+	}
+
 	/* read out each line part, assumes little-endian */
-	uint8_t pixel_line_1 = mmu->vram[(tile_addr + pixel_y * 2) + 1];
-	uint8_t pixel_line_2 = mmu->vram[(tile_addr + pixel_y * 2) + 0];
+	uint8_t pixel_line_1 = mmu->vram[(tile_addr + pixel_y * 2) + 1 + offset];
+	uint8_t pixel_line_2 = mmu->vram[(tile_addr + pixel_y * 2) + 0 + offset];
 
 	uint8_t pixel_mask = 0x80 >> pixel_x;
 	uint8_t pixel = (((pixel_line_1 & pixel_mask) != 0) << 1) | ((pixel_line_2 & pixel_mask) != 0);
@@ -130,7 +137,7 @@ void ppu_render_background(ppu_t* ppu, mmu_t* mmu, size_t line)
 		size_t tile_y = line / 8;
 		uint8_t tile_id = mmu_peek8(mmu, 0x9800 + tile_x + tile_y * 32);
 
-		ppu_set_pixel(ppu, x, line, ppu_get_tile(ppu, mmu, tile_id, x, line));
+		ppu_set_pixel(ppu, x, line, ppu_get_tile(ppu, mmu, tile_id, x, line, false));
 	}
 }
 
@@ -157,7 +164,7 @@ void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t line)
 					uint8_t pixel_x = screen_x % 8;
 					uint8_t pixel_y = screen_y % 8;
 
-					uint8_t pixel = ppu_get_tile(ppu, mmu, sprite_tile_id, pixel_x, pixel_y);
+					uint8_t pixel = ppu_get_tile(ppu, mmu, sprite_tile_id, pixel_x, pixel_y, true);
 					ppu_set_pixel(ppu, sprite_x + x - 8, line, pixel);
 				}
 			}
@@ -167,6 +174,12 @@ void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t line)
 
 void ppu_render_line(ppu_t* ppu, mmu_t* mmu, size_t line)
 {
-	ppu_render_background(ppu, mmu, line);
-	ppu_render_sprites(ppu, mmu, line);
+	if (mmu->io[MMAP_IO_LCDC - 0xFF00] & 0x1)
+	{
+		ppu_render_background(ppu, mmu, line);
+	}
+	if (mmu->io[MMAP_IO_LCDC - 0xFF00] & 0x2)
+	{
+		ppu_render_sprites(ppu, mmu, line);
+	}
 }
