@@ -20,6 +20,9 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 	memset(mmu->io, 0, sizeof(mmu->io));
 	memset(mmu->hram, 0, sizeof(mmu->hram));
 	mmu->interrupt_enable = 0;
+
+	/* setup memory */
+	mmu->io[MMAP_IO_LCDC - 0xFF00] = 0x91; // LCDC
 }
 
 void mmu_destroy(mmu_t* mmu)
@@ -133,9 +136,6 @@ void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 			mmu->io[0x00] = (value & 0x30) | (input & 0xCF); // only permit writing to bits 4 & 5
 			return;
 		}
-		case 0xFF40:
-			printf("Wrote 0xFF40 = %X\n", value);
-			break;
 		case 0xFF46: /* dma transfer */
 			for (uint16_t copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
 			{

@@ -107,17 +107,19 @@ uint8_t ppu_get_pixel(ppu_t* ppu, size_t x, size_t y)
 
 uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, size_t tile_y, bool is_sprite)
 {
+	uint16_t offset = 0x00;
+	uint8_t addressing_8800 = !(mmu->io[MMAP_IO_LCDC - 0xFF00] & 0x10);
+
+	if (!is_sprite && addressing_8800)
+	{
+		if (tile_id <= 0x7F) { offset = 0x1000; }
+		else { offset = 0x800; tile_id -= 0x80; }
+	}
+
 	uint16_t tile_addr = tile_id * 8 * 2;
 
 	uint8_t pixel_x = tile_x % 8;
 	uint8_t pixel_y = tile_y % 8;
-
-	uint16_t offset = 0x00;
-
-	if (!is_sprite && (mmu->wram[0][MMAP_IO_LCDC - 0xFF00] & 0x10))
-	{
-		offset = 0x1000;
-	}
 
 	/* read out each line part, assumes little-endian */
 	uint8_t pixel_line_1 = mmu->vram[(tile_addr + pixel_y * 2) + 1 + offset];
