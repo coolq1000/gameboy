@@ -145,6 +145,25 @@ void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 		}
 		*mmu_map(mmu, address) = value;
 	}
+	else
+	{
+		/* mbc5 implementation */
+		switch (address & 0xF000)
+		{
+		case 0x0000:
+		case 0x1000:
+			/* ram enable */
+			// todo: enable ram
+			break;
+		case 0x2000:
+			/* switch second memory bank */
+			mmu->cart[1] = mmu->cart[0] + (0x4000 * value);
+			break;
+		default:
+			printf("attempt to write to ROM: %X = %X\n", address, value);
+			exit(EXIT_FAILURE);
+		}
+	}
 }
 
 void mmu_poke16(mmu_t* mmu, uint16_t address, uint16_t value)

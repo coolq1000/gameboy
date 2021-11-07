@@ -7,9 +7,9 @@
 
 #define CYCLES_ELAPSED(ppu, num_cycles) (ppu->cycles >= num_cycles)
 
-#define CYCLES_H_BLANK		0xCF
-#define CYCLES_OAM_ACCESS	0x53
-#define CYCLES_LCD_TRANSFER	0xAF
+#define CYCLES_H_BLANK		207
+#define CYCLES_OAM_ACCESS	83
+#define CYCLES_LCD_TRANSFER	175
 #define CYCLES_LINE			456
 
 #define SCANLINE_V_BLANK	144
@@ -46,7 +46,7 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles);
 void ppu_set_pixel(ppu_t* ppu, size_t x, size_t y, uint8_t value);
 uint8_t ppu_get_pixel(ppu_t* ppu, size_t x, size_t y);
 
-uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, size_t tile_y, bool is_sprite);
+uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, size_t tile_y, uint8_t palette, bool is_sprite);
 
 void ppu_render_background(ppu_t* ppu, mmu_t* mmu, size_t line);
 void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t line);

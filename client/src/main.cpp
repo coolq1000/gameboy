@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <deque>
 #include <sstream>
 #include <core/dmg.hpp>
 #include <SFML/Graphics.hpp>
@@ -20,7 +21,7 @@ namespace app
 	sf::Text text;
 	std::unique_ptr<uint32_t> lcd_pixels;
 
-	uint16_t last_pc = 0;
+	std::deque<gmb_c::cpu> history;
 
 	gmb_c::dmg_t gameboy;
 
@@ -52,16 +53,26 @@ namespace app
 		text.setFillColor(sf::Color(200, 200, 200, 255));
         text.setOutlineColor(sf::Color(25, 25, 25, 255));
         text.setOutlineThickness(2);
+        
+        std::atexit([]()
+    	{
+    		for (auto& history_element : history)
+    		{
+    			gmb_c::cpu_dump(&history_element);
+    		}
+    	});
 	}
 
 	void run()
 	{
 		while (window.isOpen())
 		{
+			// history.push_front(gameboy.cpu);
+			while (history.size() > 1024) history.pop_back();
+			if (gameboy.cpu.registers.sp <= 0x8000)
+				exit(EXIT_SUCCESS);
 			gmb_c::dmg_cycle(&gameboy);
 		}
-
-		printf("%X\n", gameboy.cpu.registers.pc);
 	}
 
 	void draw()
@@ -107,7 +118,7 @@ namespace app
 		{
 			for (size_t y = 0; y < lcd_height; y++)
 			{
-				uint8_t pixel = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y);
+				uint8_t pixel = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y) + 1;
 				uint8_t r = 0, g = 0, b = 0, a = 0xFF;
 
 				r = gmb_c::ppu_palette[pixel][0];
@@ -122,11 +133,9 @@ namespace app
 
 		window.draw(lcd_sprite);
 
-		// std::stringstream ss;
-		// ss << std::hex << last_pc;
-		// text.setString(ss.str());
-		// text.setCharacterSize(24);
-		// window.draw(text);
+		text.setString(std::to_string(gmb_c::mmu_peek8(&gameboy.mmu, 0xFF44)));
+		text.setCharacterSize(24);
+		window.draw(text);
 		window.display();
 	}
 };

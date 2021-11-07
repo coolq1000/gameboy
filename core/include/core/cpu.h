@@ -74,7 +74,7 @@ typedef struct cpu
 	} clock;
 	struct
 	{
-		int delay;
+		int pending;
 		bool master;
 	} interrupt;
 
