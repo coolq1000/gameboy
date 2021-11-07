@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sstream>
 #include <core/dmg.hpp>
 #include <SFML/Graphics.hpp>
 
@@ -15,7 +16,11 @@ namespace app
 	sf::RenderWindow window;
 	sf::Texture lcd;
 	sf::Sprite lcd_sprite;
+	sf::Font font;
+	sf::Text text;
 	std::unique_ptr<uint32_t> lcd_pixels;
+
+	uint16_t last_pc = 0;
 
 	gmb_c::dmg_t gameboy;
 
@@ -24,7 +29,7 @@ namespace app
 	void start()
 	{
 		gmb_c::rom_t rom;
-		gmb_c::rom_create(&rom, "roms/tetris.gb");
+		gmb_c::rom_create(&rom, "res/roms/ladx.gb");
 		gmb_c::dmg_create(&gameboy, &rom);
 
 		window.create(sf::VideoMode(window_width, window_height), "gameboy");
@@ -41,6 +46,12 @@ namespace app
 		window.setFramerateLimit(60);
 
 		gameboy.ppu.v_blank_callback = draw;
+
+		font.loadFromFile("res/fonts/slkscr.ttf");
+		text.setFont(font);
+		text.setFillColor(sf::Color(200, 200, 200, 255));
+        text.setOutlineColor(sf::Color(25, 25, 25, 255));
+        text.setOutlineThickness(2);
 	}
 
 	void run()
@@ -49,6 +60,8 @@ namespace app
 		{
 			gmb_c::dmg_cycle(&gameboy);
 		}
+
+		printf("%X\n", gameboy.cpu.registers.pc);
 	}
 
 	void draw()
@@ -108,6 +121,12 @@ namespace app
 		lcd.update(reinterpret_cast<sf::Uint8*>(lcd_pixels.get()));
 
 		window.draw(lcd_sprite);
+
+		// std::stringstream ss;
+		// ss << std::hex << last_pc;
+		// text.setString(ss.str());
+		// text.setCharacterSize(24);
+		// window.draw(text);
 		window.display();
 	}
 };

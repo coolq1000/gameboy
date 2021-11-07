@@ -7,9 +7,12 @@ set(SOURCE
 	src/main.cpp
 )
 
-set(SFML_INSTALL_XCODE_TEMPLATES TRUE)
-set(CMAKE_WARN_DEPRECATED FALSE)
-set(BUILD_SHARED_LIBS TRUE)
+set(BUILD_SHARED_LIBS FALSE)
+if (APPLE)
+	# set(SFML_INSTALL_XCODE_TEMPLATES TRUE)
+	set(CMAKE_WARN_DEPRECATED FALSE)
+	set(BUILD_SHARED_LIBS TRUE)
+endif()
 add_subdirectory(deps/sfml)
 
 add_executable(client ${SOURCE})
