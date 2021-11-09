@@ -158,13 +158,25 @@ uint8_t ppu_convert_palette(ppu_t* ppu, uint8_t pixel, uint8_t palette)
 	return ((palette & (0x03 << palette_shift)) >> palette_shift) - 1;
 }
 
-uint8_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y)
+uint8_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y, uint8_t is_window)
 {
-	size_t tile_x = x / 8;
-	size_t tile_y = y / 8;
-	uint8_t tile_id = mmu_peek8(mmu, 0x9800 + tile_x + tile_y * 32);
+	uint16_t map_area = (mmu->io[MMAP_IO_LCDC - 0xFF00] & 0x8) ? 0x9C00 : 0x9800;
 
-	return ppu_get_tile(ppu, mmu, tile_id, x % 8, y % 8, false);
+	size_t tile_x = (x % 256) / 8;
+	size_t tile_y = (y % 256) / 8;
+
+	if (is_window)
+	{
+		map_area = 0x9C00;
+		uint8_t tile_id = mmu_peek8(mmu, map_area + tile_x + tile_y * 32);
+		return ppu_get_tile(ppu, mmu, tile_id, x % 8, y % 8, false);
+	}
+	else
+	{
+		uint8_t tile_id = mmu_peek8(mmu, map_area + tile_x + tile_y * 32);
+		return ppu_get_tile(ppu, mmu, tile_id, x % 8, y % 8, false);
+	}
+	
 }
 
 void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y, uint8_t background)
@@ -172,8 +184,8 @@ void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y, uint8_t back
 	for (size_t i_sprite = 0; i_sprite < 40; i_sprite++)
 	{
 		uint16_t sprite_address = i_sprite * 4;
-		uint8_t sprite_x = mmu->oam[sprite_address + 1] - 8;
-		uint8_t sprite_y = mmu->oam[sprite_address + 0] - 16;
+		int16_t sprite_x = mmu->oam[sprite_address + 1] - 8;
+		int16_t sprite_y = mmu->oam[sprite_address + 0] - 16;
 		uint8_t sprite_tile_id = mmu->oam[sprite_address + 2];
 		uint8_t sprite_tile_attributes = mmu->oam[sprite_address + 3];
 
@@ -185,20 +197,20 @@ void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y, uint8_t back
 		uint8_t palette = sprite_tile_attributes & 0x10 ? palette_1 : palette_0;
 
 		/* check sprite active */
-		if (sprite_y + 16)
+		if (mmu->oam[sprite_address])
 		{
 			/* check sprite bounds */
-			if (x >= sprite_x && x < sprite_x + 8 && y >= sprite_y && y < sprite_y + sprite_height)
+			if ((int16_t)x >= sprite_x && (int16_t)x < sprite_x + 8 && (int16_t)y >= sprite_y && (int16_t)y < sprite_y + sprite_height)
 			{
 				uint8_t flip_x = sprite_tile_attributes & 0x20;
 				uint8_t flip_y = sprite_tile_attributes & 0x40;
 				uint8_t priority = !(sprite_tile_attributes & 0x80);
 
-				uint8_t pixel_x = (x - sprite_x) % 8;
-				uint8_t pixel_y = (y - sprite_y) % sprite_height;
+				int16_t pixel_x = (x - sprite_x) % 8;
+				int16_t pixel_y = (y - sprite_y) % sprite_height;
 
 				if (flip_x) pixel_x = 7 - pixel_x;
-				if (flip_y) pixel_x = sprite_height - 1 - pixel_y;
+				if (flip_y) pixel_y = sprite_height - 1 - pixel_y;
 
 				uint8_t pixel = ppu_get_tile(ppu, mmu, sprite_tile_id, pixel_x, pixel_y, true);
 				uint8_t palette_pixel = ppu_convert_palette(ppu, pixel, palette);
@@ -224,6 +236,10 @@ void ppu_render_line(ppu_t* ppu, mmu_t* mmu, size_t line)
 	uint8_t lcd_enable = (mmu->io[MMAP_IO_LCDC - 0xFF00] & 0x80) != 0;
 	uint8_t background_enable = (mmu->io[MMAP_IO_LCDC - 0xFF00] & 0x1) != 0;
 	uint8_t sprites_enable = (mmu->io[MMAP_IO_LCDC - 0xFF00] & 0x2) != 0;
+	uint8_t window_enable = (mmu->io[MMAP_IO_LCDC - 0xFF00] & 0x20) != 0;
+
+	int window_x = ((int)mmu->io[0x4B]) - 7;
+	int window_y = mmu->io[0x4A];
 
 	if (lcd_enable)
 	{
@@ -232,8 +248,16 @@ void ppu_render_line(ppu_t* ppu, mmu_t* mmu, size_t line)
 			uint8_t background = 0;
 			if (background_enable) // render background
 			{
-				background = ppu_render_background(ppu, mmu, x + scroll_x, line + scroll_y);
+				background = ppu_render_background(ppu, mmu, x + scroll_x, line + scroll_y, false);
 				ppu_set_pixel(ppu, x, line, ppu_convert_palette(ppu, background, mmu->io[MMAP_IO_BGP - 0xFF00]));
+			}
+			if (window_enable)
+			{
+				if (line >= window_y && (int)x >= window_x)
+				{
+					background = ppu_render_background(ppu, mmu, x - window_x, line - window_y, true); // todo check LCDC.3 only if not a window
+					ppu_set_pixel(ppu, x, line, ppu_convert_palette(ppu, background, mmu->io[MMAP_IO_BGP - 0xFF00]));
+				}
 			}
 			if (sprites_enable) // render sprites
 			{

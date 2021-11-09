@@ -295,33 +295,35 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu->registers.h = imm8;
 		break;
 	case 0x27: /* daa */
-		tmp8 = 0;
-		if (cpu->registers.flag_h || (!cpu->registers.flag_n && (cpu->registers.a & 0xF) > 9))
+		if (!cpu->registers.flag_n)
 		{
-			tmp8 |= 0x6;
+			if (cpu->registers.flag_c || (cpu->registers.a > 0x99))
+			{
+				cpu->registers.a += 0x60;
+				cpu->registers.flag_c = true;
+			}
+			if (cpu->registers.flag_h || ((cpu->registers.a & 0xF) > 9))
+			{
+				cpu->registers.a += 0x6;
+				cpu->registers.flag_h = false;
+			}
+		}
+		else if (cpu->registers.flag_c && cpu->registers.flag_h)
+		{
+			cpu->registers.a += 0x9A;
+			cpu->registers.flag_h = false;
+		}
+		else if (cpu->registers.flag_c)
+		{
+			cpu->registers.a += 0xA0;
+		}
+		else if (cpu->registers.flag_h)
+		{
+			cpu->registers.a += 0xFA;
+			cpu->registers.flag_h = false;
 		}
 
-		if (cpu->registers.flag_c || (!cpu->registers.flag_n && cpu->registers.a > 0x99))
-		{
-			tmp8 |= 0x60;
-			cpu->registers.flag_c = 0;
-		}
-
-		cpu->registers.a += cpu->registers.flag_n ? -tmp8 : tmp8;
-		// if (cpu->registers.flag_z)
-		// {
-		// 	if (cpu->registers.flag_h) cpu->registers.a = (cpu->registers.a - 0x6) & 0xFF;
-		// 	if (cpu->registers.flag_c) cpu->registers.a -= 0x60;
-		// }
-		// else
-		// {
-		// 	if (cpu->registers.flag_h || (cpu->registers.a & 0xF) > 9) cpu->registers.a += 0x6;
-		// 	if (cpu->registers.flag_c || cpu->registers.a > 0x9F) cpu->registers.a += 0x60;
-		// }
-
-		// cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
-		// cpu->registers.flag_h = false;
-		// cpu->registers.flag_c = cpu->registers.a >= 0x100;
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
 		break;
 	case 0x28: /* jr z, r8 */
 		if (cpu->registers.flag_z)
@@ -1277,7 +1279,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu->registers.a = mmu_peek8(mmu, 0xFF00 + imm8);
 		break;
 	case 0xF1: /* pop af */
-		cpu->registers.af = cpu_pop(cpu, mmu);
+		cpu->registers.af = cpu_pop(cpu, mmu) & 0xFFF0;
 		break;
 	case 0xF2: /* ld a, (c) */
 		// OPERATION
@@ -1390,44 +1392,68 @@ void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
 		break;
 	case 0x08: /* rrc b */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		tmp8 = cpu->registers.b & 0x1;
+		cpu->registers.b = (cpu->registers.b >> 1) | (tmp8 << 7);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.b);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x09: /* rrc c */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		tmp8 = cpu->registers.c & 0x1;
+		cpu->registers.c = (cpu->registers.c >> 1) | (tmp8 << 7);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.c);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x0A: /* rrc d */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		tmp8 = cpu->registers.d & 0x1;
+		cpu->registers.d = (cpu->registers.d >> 1) | (tmp8 << 7);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.d);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x0B: /* rrc e */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		tmp8 = cpu->registers.e & 0x1;
+		cpu->registers.e = (cpu->registers.e >> 1) | (tmp8 << 7);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.e);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x0C: /* rrc h */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		tmp8 = cpu->registers.h & 0x1;
+		cpu->registers.h = (cpu->registers.h >> 1) | (tmp8 << 7);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.h);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x0D: /* rrc l */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		tmp8 = cpu->registers.l & 0x1;
+		cpu->registers.l = (cpu->registers.l >> 1) | (tmp8 << 7);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.l);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x0E: /* rrc (hl) */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		tmp8 = mmu_peek8(mmu, cpu->registers.hl) & 0x1;
+		mmu_poke8(mmu, cpu->registers.hl, (mmu_peek8(mmu, cpu->registers.hl) >> 1) | tmp8);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.l);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x0F: /* rrc a */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		tmp8 = cpu->registers.a & 0x1;
+		cpu->registers.a = (cpu->registers.a >> 1) | (tmp8 << 7);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x10: /* rl b */
 		tmp8 = cpu->registers.b;
@@ -1447,7 +1473,7 @@ void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		break;
 	case 0x12: /* rl d */
 		tmp8 = cpu->registers.d;
-		cpu->registers.b = (cpu->registers.d << 1) | cpu->registers.flag_c;
+		cpu->registers.d = (cpu->registers.d << 1) | cpu->registers.flag_c;
 		cpu->registers.flag_z = IS_ZERO(cpu->registers.d);
 		cpu->registers.flag_n = false;
 		cpu->registers.flag_h = false;
@@ -1712,9 +1738,12 @@ void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu->registers.flag_c = false;
 		break;
 	case 0x36: /* swap (hl) */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
+		tmp8 = mmu_peek8(mmu, cpu->registers.hl);
+		mmu_poke8(mmu, cpu->registers.hl, (tmp8 << 4) | (tmp8 >> 4));
+		cpu->registers.flag_z = IS_ZERO(tmp8);
+		cpu->registers.flag_n = false;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = false;
 		break;
 	case 0x37: /* swap a */
 		cpu->registers.a = (cpu->registers.a << 4) | (cpu->registers.a >> 4);

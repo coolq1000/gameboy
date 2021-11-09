@@ -65,27 +65,23 @@ namespace app
 
 	void run()
 	{
+		bool debugging = false;
 		while (window.isOpen())
 		{
-			history.push_front(gameboy.cpu);
-			while (history.size() > 64) history.pop_back();
-			if (gameboy.cpu.registers.pc == 0x3113)
-			{
-				exit(EXIT_SUCCESS);
-			}
-			if (gameboy.cpu.registers.pc == 0x287E)
-			{
-				printf("%X = ", gameboy.cpu.registers.hl);
-				if (gameboy.cpu.registers.de == 0x57F5)
-				{
-					printf("%X\n", gameboy.cpu.registers.de);
-					exit(EXIT_SUCCESS);
-				}
-			}
-			if (gameboy.cpu.registers.pc == 0x2880)
-			{
-				printf("%X\n", gameboy.cpu.registers.hl);
-			}
+			// history.push_front(gameboy.cpu);
+			// while (history.size() > 64) history.pop_back();
+			// if (gameboy.cpu.registers.pc == 0x62C2)
+			// {
+			// 	debugging = true;
+			// }
+			// if (debugging)
+			// {
+			// 	gmb_c::opc_t* opcode = &gmb_c::opc_opcodes[gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc)];
+			// 	gmb_c::cpu_trace(&gameboy.cpu, opcode);
+			// 	gmb_c::cpu_dump(&gameboy.cpu);
+			// 	printf(">: ");
+			// 	getchar();
+			// }
 			gmb_c::dmg_cycle(&gameboy);
 		}
 	}
@@ -105,8 +101,8 @@ namespace app
 				{
 				case sf::Keyboard::Enter: gameboy.mmu.buttons.start = true; break;
 				case sf::Keyboard::Backspace: gameboy.mmu.buttons.select = true; break;
-				case sf::Keyboard::Z: gameboy.mmu.buttons.a = true; break;
-				case sf::Keyboard::X: gameboy.mmu.buttons.b = true; break;
+				case sf::Keyboard::Z: gameboy.mmu.buttons.b = true; break;
+				case sf::Keyboard::X: gameboy.mmu.buttons.a = true; break;
 				case sf::Keyboard::Down: gameboy.mmu.buttons.down = true; break;
 				case sf::Keyboard::Up: gameboy.mmu.buttons.up = true; break;
 				case sf::Keyboard::Left: gameboy.mmu.buttons.left = true; break;
@@ -118,8 +114,8 @@ namespace app
 				{
 				case sf::Keyboard::Enter: gameboy.mmu.buttons.start = false; break;
 				case sf::Keyboard::Backspace: gameboy.mmu.buttons.select = false; break;
-				case sf::Keyboard::Z: gameboy.mmu.buttons.a = false; break;
-				case sf::Keyboard::X: gameboy.mmu.buttons.b = false; break;
+				case sf::Keyboard::Z: gameboy.mmu.buttons.b = false; break;
+				case sf::Keyboard::X: gameboy.mmu.buttons.a = false; break;
 				case sf::Keyboard::Down: gameboy.mmu.buttons.down = false; break;
 				case sf::Keyboard::Up: gameboy.mmu.buttons.up = false; break;
 				case sf::Keyboard::Left: gameboy.mmu.buttons.left = false; break;
@@ -148,9 +144,10 @@ namespace app
 
 		window.draw(lcd_sprite);
 
-		text.setString(std::to_string(gmb_c::mmu_peek8(&gameboy.mmu, 0xFF44)));
-		text.setCharacterSize(24);
-		window.draw(text);
+		// text.setString(std::to_string(gmb_c::mmu_peek8(&gameboy.mmu, 0xFF4B)));
+		// text.setCharacterSize(24);
+		// window.draw(text);
+
 		window.display();
 	}
 };

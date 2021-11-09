@@ -10,6 +10,14 @@
 
 /* flags */
 #define IS_ZERO(reg) (!(reg))
+// #define HALF_ADD_CARRY(a, b) (((a) & 0xF) < ((b) & 0xF))
+// #define FULL_ADD_CARRY(a, b) (((a) & 0xFF) < ((b) & 0xFF))
+// #define HALF_SUB_CARRY(a, b) (((a) & 0xF) > ((b) & 0xF))
+// #define FULL_SUB_CARRY(a, b) (((a) & 0xFF) > ((b) & 0xFF))
+// #define DOUBLE_HALF_ADD_CARRY(a, b) (((a) & 0xFFF) < ((b) & 0xFFF))
+// #define DOUBLE_FULL_ADD_CARRY(a, b) (((a) & 0xFFFF) < ((b) & 0xFFFF))
+// #define DOUBLE_HALF_SUB_CARRY(a, b) (((a) & 0xFFF) > ((b) & 0xFFF))
+// #define DOUBLE_FULL_SUB_CARRY(a, b) (((a) & 0xFFFF) > ((b) & 0xFFFF))
 #define HALF_CARRY(a, b) ((((a) + (b)) & 0x10) > 0)
 #define FULL_CARRY(a, b) ((((a) + (b)) & 0x100) > 0)
 #define DOUBLE_HALF_CARRY(a, b) ((((a) + (b)) & 0x100) > 0)
