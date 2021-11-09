@@ -21,4 +21,8 @@ void dmg_cycle(dmg_t* dmg)
 	{
 		ppu_cycle(&dmg->ppu, &dmg->mmu, &dmg->cpu, dmg->cpu.clock.cycles);
 	}
+	else
+	{
+		if (dmg->ppu.v_blank_callback) dmg->ppu.v_blank_callback();
+	}
 }

@@ -5,9 +5,17 @@
 #include <stdint.h>
 #include "rom.h"
 
+#define GET_BIT(value, index) (((value) & (1 << index)) != 0)
+#define SET_BIT(value, index) ((value) | (1 << index))
+#define CLEAR_BIT(value, index) ((value) & ~(1 << index))
+
 #define MMAP_IO_LCDC 0xFF40
+#define MMAP_IO_STAT 0xFF41
 #define MMAP_IO_LY 0xFF44
 #define MMAP_IO_LYC 0xFF45
+#define MMAP_IO_BGP 0xFF47
+#define MMAP_IO_OBP0 0xFF48
+#define MMAP_IO_OBP1 0xFF49
 
 extern int flag_hit;
 

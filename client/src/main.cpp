@@ -67,10 +67,25 @@ namespace app
 	{
 		while (window.isOpen())
 		{
-			// history.push_front(gameboy.cpu);
-			while (history.size() > 1024) history.pop_back();
-			if (gameboy.cpu.registers.sp <= 0x8000)
+			history.push_front(gameboy.cpu);
+			while (history.size() > 64) history.pop_back();
+			if (gameboy.cpu.registers.pc == 0x3113)
+			{
 				exit(EXIT_SUCCESS);
+			}
+			if (gameboy.cpu.registers.pc == 0x287E)
+			{
+				printf("%X = ", gameboy.cpu.registers.hl);
+				if (gameboy.cpu.registers.de == 0x57F5)
+				{
+					printf("%X\n", gameboy.cpu.registers.de);
+					exit(EXIT_SUCCESS);
+				}
+			}
+			if (gameboy.cpu.registers.pc == 0x2880)
+			{
+				printf("%X\n", gameboy.cpu.registers.hl);
+			}
 			gmb_c::dmg_cycle(&gameboy);
 		}
 	}
