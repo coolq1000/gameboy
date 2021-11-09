@@ -1077,10 +1077,10 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu->registers.flag_c = cpu->registers.a < tmp8;
 		break;
 	case 0xBF: /* cp a */
-		cpu->registers.flag_z = cpu->registers.a == cpu->registers.a;
-		cpu->registers.flag_n = 1;
-		cpu->registers.flag_h = (cpu->registers.a & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = cpu->registers.a < cpu->registers.a;
+		cpu->registers.flag_z = true;
+		cpu->registers.flag_n = true;
+		cpu->registers.flag_h = false;
+		cpu->registers.flag_c = false;
 		break;
 	case 0xC0: /* ret nz */
 		if (!cpu->registers.flag_z)
@@ -1306,7 +1306,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu->registers.hl = cpu->registers.sp + (int8_t)imm8;
 		cpu->registers.flag_z = false;
 		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (cpu->registers.sp + imm8) & 0xF < (cpu->registers.sp & 0xF);
+		cpu->registers.flag_h = ((cpu->registers.sp + imm8) & 0xF) < (cpu->registers.sp & 0xF);
 		cpu->registers.flag_c = cpu->registers.sp + imm8 < cpu->registers.sp;
 		break;
 	case 0xF9: /* ld sp, hl */

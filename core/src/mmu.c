@@ -13,7 +13,8 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 
 	/* clear out memory */
 	memset(mmu->vram, 0, sizeof(mmu->vram));
-	memset(mmu->xram, 0, sizeof(mmu->xram));
+	for (size_t i = 0; i < sizeof(mmu->xram) / sizeof(mmu->xram[0]); i++)
+		memset(mmu->xram[i], 0, sizeof(mmu->xram));
 	for (size_t i = 0; i < sizeof(mmu->wram) / sizeof(mmu->wram[0]); i++)
 		memset(mmu->wram[i], 0, sizeof(mmu->wram[0]));
 	memset(mmu->oam, 0, sizeof(mmu->oam));
@@ -49,7 +50,7 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 		return &mmu->vram[address - 0x8000];
 	case 0xA000:
 	case 0xB000:
-		return &mmu->xram[address - 0xA000];
+		return &mmu->xram[0][address - 0xA000];
 	case 0xC000:
 		return &mmu->wram[0][address - 0xC000];
 	case 0xD000:

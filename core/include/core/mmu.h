@@ -27,7 +27,7 @@ typedef struct
 	/* memory map */
 	uint8_t* cart[2];
     uint8_t vram[0x2000];
-    uint8_t xram[0x2000];
+    uint8_t xram[2][0x2000];
     uint8_t wram[8][0x1000];
     uint8_t oam[0x9F];
     uint8_t io[0x7F];

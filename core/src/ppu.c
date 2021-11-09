@@ -158,12 +158,12 @@ uint8_t ppu_convert_palette(ppu_t* ppu, uint8_t pixel, uint8_t palette)
 	return ((palette & (0x03 << palette_shift)) >> palette_shift) - 1;
 }
 
-uint8_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y, uint8_t is_window)
+uint8_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, uint8_t x, uint8_t y, uint8_t is_window)
 {
 	uint16_t map_area = (mmu->io[MMAP_IO_LCDC - 0xFF00] & 0x8) ? 0x9C00 : 0x9800;
 
-	size_t tile_x = (x % 256) / 8;
-	size_t tile_y = (y % 256) / 8;
+	uint8_t tile_x = x / 8;
+	uint8_t tile_y = y / 8;
 
 	if (is_window)
 	{
@@ -265,11 +265,11 @@ void ppu_render_line(ppu_t* ppu, mmu_t* mmu, size_t line)
 			}
 		}
 	}
-	else
-	{
-		for (size_t x = 0; x < LCD_WIDTH; x++)
-		{
-			ppu_set_pixel(ppu, x, line, 1);
-		}
-	}
+	// else
+	// {
+	// 	for (size_t x = 0; x < LCD_WIDTH; x++)
+	// 	{
+	// 		ppu_set_pixel(ppu, x, line, 0);
+	// 	}
+	// }
 }
