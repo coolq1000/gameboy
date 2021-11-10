@@ -63,7 +63,7 @@ void ppu_set_stat_mode(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu)
 
 	if (cpu->interrupt.master)
 	{
-		if (mmu->io[MMAP_IO_STAT && 0xFF] & mask)
+		if (mmu->io[MMAP_IO_STAT & 0xFF] & mask)
 		{
 			printf("request\n");
 			cpu_request(cpu, mmu, INT_LCD_STAT_INDEX);
@@ -132,7 +132,7 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 		break;
 	}
 
-	mmu->io[MMAP_IO_STAT && 0xFF] = (mmu->io[MMAP_IO_STAT && 0xFF] & 0xFC) | ppu->mode;
+	mmu->io[MMAP_IO_STAT & 0xFF] = (mmu->io[MMAP_IO_STAT & 0xFF] & 0xFC) | ppu->mode;
 }
 
 void ppu_set_pixel(ppu_t* ppu, size_t x, size_t y, uint8_t value)
