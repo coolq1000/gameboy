@@ -9,6 +9,16 @@
 #define SET_BIT(value, index) ((value) | (1 << index))
 #define CLEAR_BIT(value, index) ((value) & ~(1 << index))
 
+#define VRAM_SIZE 0x2000
+#define XRAM_SIZE 0x2000
+#define WRAM_SIZE 0x1000
+#define  OAM_SIZE 0x9F
+#define   IO_SIZE 0x7F
+#define HRAM_SIZE 0x7E
+
+#define MBC5_XRAM_COUNT 0xF
+#define CGB_WRAM_COUNT 0x8
+
 #define MMAP_IO_LCDC 0xFF40
 #define MMAP_IO_STAT 0xFF41
 #define MMAP_IO_LY 0xFF44
@@ -26,12 +36,12 @@ typedef struct
 
 	/* memory map */
 	uint8_t* cart[2];
-    uint8_t vram[0x2000];
-    uint8_t xram[2][0x2000];
-    uint8_t wram[8][0x1000];
-    uint8_t oam[0x9F];
-    uint8_t io[0x7F];
-    uint8_t hram[0x7E];
+    uint8_t* vram;
+    uint8_t* xram[MBC5_XRAM_COUNT];
+    uint8_t* wram[CGB_WRAM_COUNT];
+    uint8_t* oam;
+    uint8_t* io;
+    uint8_t* hram;
     uint8_t interrupt_enable;
 
     struct

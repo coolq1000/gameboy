@@ -1180,9 +1180,11 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		}
 		break;
 	case 0xD4: /* call nc, a16 */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented opcode");
+		if (!cpu->registers.flag_c)
+		{
+			cpu_call(cpu, mmu, imm16);
+			cpu->clock.cycles += 12;
+		}
 		break;
 	case 0xD5: /* push de */
 		cpu_push(cpu, mmu, cpu->registers.de);
@@ -1217,9 +1219,11 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		}
 		break;
 	case 0xDC: /* call c, a16 */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented opcode");
+		if (cpu->registers.flag_c)
+		{
+			cpu_call(cpu, mmu, imm16);
+			cpu->clock.cycles += 12;
+		}
 		break;
 	case 0xDE: /* sbc a, d8 */
 		tmp8 = cpu->registers.a - (imm8 + cpu->registers.flag_c);
@@ -1282,9 +1286,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu->registers.af = cpu_pop(cpu, mmu) & 0xFFF0;
 		break;
 	case 0xF2: /* ld a, (c) */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, mmu, opc, "unimplemented opcode");
+		cpu->registers.a = mmu_peek8(mmu, 0xFF00 + cpu->registers.c);
 		break;
 	case 0xF3: /* di */
 		cpu->interrupt.master = false;
@@ -2551,31 +2553,33 @@ void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
 		uint8_t interrupt_request = mmu->io[IRF & 0xFF];
 		uint8_t interrupt_flags = interrupt_enable & interrupt_request;
 
+		// printf("%X\n", interrupt_request & INT_LCD_STAT_INDEX);
+
 		if (interrupt_flags & INT_V_BLANK_INDEX)
 		{
 			/* v-blank interrupt */
 			cpu_interrupt(cpu, mmu, INT_V_BLANK);
 			mmu->io[IRF & 0xFF] &= ~INT_V_BLANK_INDEX;
 		}
-		if (interrupt_flags & INT_LCD_STAT_INDEX)
+		else if (interrupt_flags & INT_LCD_STAT_INDEX)
 		{
 			/* lcd-stat interrupt */
 			cpu_interrupt(cpu, mmu, INT_LCD_STAT);
 			mmu->io[IRF & 0xFF] &= ~INT_LCD_STAT_INDEX;
 		}
-		if (interrupt_flags & INT_TIMER_INDEX)
+		else if (interrupt_flags & INT_TIMER_INDEX)
 		{
 			/* timer interrupt */
 			cpu_interrupt(cpu, mmu, INT_TIMER);
 			mmu->io[IRF & 0xFF] &= ~INT_TIMER_INDEX;
 		}
-		if (interrupt_flags & INT_SERIAL_INDEX)
+		else if (interrupt_flags & INT_SERIAL_INDEX)
 		{
 			/* serial interrupt */
 			cpu_interrupt(cpu, mmu, INT_SERIAL);
 			mmu->io[IRF & 0xFF] &= ~INT_SERIAL_INDEX;
 		}
-		if (interrupt_flags & INT_JOYPAD_INDEX)
+		else if (interrupt_flags & INT_JOYPAD_INDEX)
 		{
 			/* joypad interrupt */
 			cpu_interrupt(cpu, mmu, INT_JOYPAD);

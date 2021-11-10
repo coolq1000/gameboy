@@ -6,16 +6,28 @@
 
 void mmu_create(mmu_t* mmu, rom_t* rom)
 {
-	mmu->cart[0] = &rom->data[0x0000];
-	mmu->cart[1] = &rom->data[0x4000];
+	/* point cartridge memory to rom data */
+	mmu->cart[0] = &rom->cart_data[0x0000];
+	mmu->cart[1] = &rom->cart_data[0x4000];
 
+	/* allocate memory */
+	mmu->vram = (uint8_t*)malloc(0x2000);
+	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
+		mmu->xram[i] = (uint8_t*)malloc(XRAM_SIZE);
+	for (size_t i = 0; i < CGB_WRAM_COUNT; i++)
+		mmu->wram[i] = (uint8_t*)malloc(WRAM_SIZE);
+	mmu->oam = (uint8_t*)malloc(OAM_SIZE);
+	mmu->io = (uint8_t*)malloc(IO_SIZE);
+	mmu->hram = (uint8_t*)malloc(HRAM_SIZE);
+
+	/* for null access in memory map */
 	mmu->null_mem = 0;
 
 	/* clear out memory */
 	memset(mmu->vram, 0, sizeof(mmu->vram));
-	for (size_t i = 0; i < sizeof(mmu->xram) / sizeof(mmu->xram[0]); i++)
+	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
 		memset(mmu->xram[i], 0, sizeof(mmu->xram));
-	for (size_t i = 0; i < sizeof(mmu->wram) / sizeof(mmu->wram[0]); i++)
+	for (size_t i = 0; i < CGB_WRAM_COUNT; i++)
 		memset(mmu->wram[i], 0, sizeof(mmu->wram[0]));
 	memset(mmu->oam, 0, sizeof(mmu->oam));
 	memset(mmu->io, 0, sizeof(mmu->io));
@@ -24,11 +36,24 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 
 	/* setup memory */
 	mmu->io[MMAP_IO_LCDC - 0xFF00] = 0x91; // LCDC
+
+	/* load save data */
+	if (rom->save_data)
+	{
+		memcpy(mmu->xram[0], rom->save_data, XRAM_SIZE); // todo read all buffers
+	}
 }
 
 void mmu_destroy(mmu_t* mmu)
 {
-	
+	free(mmu->vram);
+	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
+		free(mmu->xram[i]);
+	for (size_t i = 0; i < CGB_WRAM_COUNT; i++)
+		free(mmu->wram[i]);
+	free(mmu->oam);
+	free(mmu->io);
+	free(mmu->hram);
 }
 
 uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
@@ -82,17 +107,17 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 					uint8_t input = 0b11000000;
 					if (!(mmu->io[0x00] & 0x10)) /* directions */
 					{
-						input |= 0b00000001 & (mmu->buttons.right	? 0x00 : 0xFF);
-						input |= 0b00000010 & (mmu->buttons.left	? 0x00 : 0xFF);
-						input |= 0b00000100 & (mmu->buttons.up		? 0x00 : 0xFF);
-						input |= 0b00001000 & (mmu->buttons.down	? 0x00 : 0xFF);
+						input |= (mmu->buttons.right	? 0 : 0b00000001);
+						input |= (mmu->buttons.left		? 0 : 0b00000010);
+						input |= (mmu->buttons.up		? 0 : 0b00000100);
+						input |= (mmu->buttons.down		? 0 : 0b00001000);
 					}
 					else if (!(mmu->io[0x00] & 0x20)) /* actions */
 					{
-						input |= 0b00000001 & (mmu->buttons.a		? 0x00 : 0xFF);
-						input |= 0b00000010 & (mmu->buttons.b		? 0x00 : 0xFF);
-						input |= 0b00000100 & (mmu->buttons.select	? 0x00 : 0xFF);
-						input |= 0b00001000 & (mmu->buttons.start	? 0x00 : 0xFF);
+						input |= (mmu->buttons.a		? 0 : 0b00000001);
+						input |= (mmu->buttons.b		? 0 : 0b00000010);
+						input |= (mmu->buttons.select	? 0 : 0b00000100);
+						input |= (mmu->buttons.start	? 0 : 0b00001000);
 					}
 					else
 					{
@@ -117,6 +142,11 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 
 uint8_t mmu_peek8(mmu_t* mmu, uint16_t address)
 {
+	switch (address)
+	{
+	case 0xFF41:
+		return mmu->io[MMAP_IO_STAT & 0xFF] | 0x80;
+	}
 	return *mmu_map(mmu, address);
 }
 
@@ -157,9 +187,12 @@ void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 			// todo: enable ram
 			break;
 		case 0x2000:
-			/* switch second memory bank */
-			mmu->cart[1] = mmu->cart[0] + (0x4000 * value);
+			mmu->cart[1] = mmu->cart[0] + (0x4000 * (value ? value : 1)); // todo: check this should go up to 1
 			break;
+		case 0x4000:
+			break; // todo: fixme!!!
+		case 0x6000:
+			break; // todo: latch rtc timer!
 		default:
 			printf("attempt to write to ROM: %X = %X\n", address, value);
 			exit(EXIT_FAILURE);

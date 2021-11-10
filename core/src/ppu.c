@@ -44,16 +44,30 @@ void ppu_compare_ly_lyc(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu)
 {
 	if (mmu->io[MMAP_IO_LY & 0xFF] == mmu->io[MMAP_IO_LYC & 0xFF])
 	{
-		mmu->io[MMAP_IO_STAT & 0xFF] = SET_BIT(mmu->io[MMAP_IO_STAT & 0xFF], 6);
+		mmu->io[MMAP_IO_STAT & 0xFF] |= 0x4;
+
+		if (cpu->interrupt.master)
+		{
+			cpu_request(cpu, mmu, INT_LCD_STAT_INDEX);
+		}
 	}
 	else
 	{
-		mmu->io[MMAP_IO_STAT & 0xFF] = CLEAR_BIT(mmu->io[MMAP_IO_STAT & 0xFF], 6);
+		mmu->io[MMAP_IO_STAT & 0xFF] &= ~0x4;
 	}
+}
 
-	if (cpu->interrupt.master && GET_BIT(mmu->io[MMAP_IO_STAT && 0xFF], 6))
+void ppu_set_stat_mode(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu)
+{
+	uint8_t mask = (1 << (3 + ppu->mode));
+
+	if (cpu->interrupt.master)
 	{
-		cpu_request(cpu, mmu, INT_LCD_STAT_INDEX);
+		if (mmu->io[MMAP_IO_STAT && 0xFF] & mask)
+		{
+			printf("request\n");
+			cpu_request(cpu, mmu, INT_LCD_STAT_INDEX);
+		}
 	}
 }
 
@@ -80,7 +94,7 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 				ppu->mode = MODE_OAM;
 			}
 
-			// todo: set h-blank stat bit
+			ppu_set_stat_mode(ppu, mmu, cpu);
 			ppu->cycles -= CYCLES_H_BLANK;
 		}
 		break;
@@ -97,7 +111,7 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 			ppu_render_line(ppu, mmu, ppu->line);
 			ppu->mode = MODE_H_BLANK;
 			// todo: hdma transfer
-			// todo: check lcd-transfer stat bit
+			ppu_set_stat_mode(ppu, mmu, cpu);
 			ppu->cycles -= CYCLES_LCD_TRANSFER;
 		}
 		break;
@@ -110,13 +124,15 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 			if (ppu->line == 0)
 			{
 				ppu->mode = MODE_OAM;
-				// todo: check lcd-transfer stat bit
+				ppu_set_stat_mode(ppu, mmu, cpu);
 			}
 
 			ppu->cycles -= CYCLES_LINE;
 		}
 		break;
 	}
+
+	mmu->io[MMAP_IO_STAT && 0xFF] = (mmu->io[MMAP_IO_STAT && 0xFF] & 0xFC) | ppu->mode;
 }
 
 void ppu_set_pixel(ppu_t* ppu, size_t x, size_t y, uint8_t value)
@@ -181,7 +197,8 @@ uint8_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, uint8_t x, uint8_t y, uint
 
 void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y, uint8_t background)
 {
-	for (size_t i_sprite = 0; i_sprite < 40; i_sprite++)
+	size_t max_draw = 10;
+	for (size_t i_sprite = 40; i_sprite-- > 0 && max_draw;) // iterate backwards to ensure sprite ordering
 	{
 		uint16_t sprite_address = i_sprite * 4;
 		int16_t sprite_x = mmu->oam[sprite_address + 1] - 8;
@@ -197,32 +214,37 @@ void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y, uint8_t back
 		uint8_t palette = sprite_tile_attributes & 0x10 ? palette_1 : palette_0;
 
 		/* check sprite active */
-		if (mmu->oam[sprite_address])
+		if (mmu->oam[sprite_address]) // checks y coordinate != 0
 		{
 			/* check sprite bounds */
-			if ((int16_t)x >= sprite_x && (int16_t)x < sprite_x + 8 && (int16_t)y >= sprite_y && (int16_t)y < sprite_y + sprite_height)
+			if ((int16_t)y >= sprite_y && (int16_t)y < sprite_y + sprite_height)
 			{
-				uint8_t flip_x = sprite_tile_attributes & 0x20;
-				uint8_t flip_y = sprite_tile_attributes & 0x40;
-				uint8_t priority = !(sprite_tile_attributes & 0x80);
-
-				int16_t pixel_x = (x - sprite_x) % 8;
-				int16_t pixel_y = (y - sprite_y) % sprite_height;
-
-				if (flip_x) pixel_x = 7 - pixel_x;
-				if (flip_y) pixel_y = sprite_height - 1 - pixel_y;
-
-				uint8_t pixel = ppu_get_tile(ppu, mmu, sprite_tile_id, pixel_x, pixel_y, true);
-				uint8_t palette_pixel = ppu_convert_palette(ppu, pixel, palette);
-
-				if (priority)
+				if ((int16_t)x >= sprite_x && (int16_t)x < sprite_x + 8)
 				{
-					if (pixel) ppu_set_pixel(ppu, x, y, palette_pixel);
+					uint8_t flip_x = sprite_tile_attributes & 0x20;
+					uint8_t flip_y = sprite_tile_attributes & 0x40;
+					uint8_t priority = !(sprite_tile_attributes & 0x80);
+
+					int16_t pixel_x = (x - sprite_x) % 8;
+					int16_t pixel_y = (y - sprite_y) % sprite_height;
+
+					if (flip_x) pixel_x = 7 - pixel_x;
+					if (flip_y) pixel_y = sprite_height - 1 - pixel_y;
+
+					uint8_t pixel = ppu_get_tile(ppu, mmu, sprite_tile_id, pixel_x, pixel_y, true);
+					uint8_t palette_pixel = ppu_convert_palette(ppu, pixel, palette);
+
+					if (priority)
+					{
+						if (pixel) ppu_set_pixel(ppu, x, y, palette_pixel);
+					}
+					else
+					{
+						if (!background && pixel) ppu_set_pixel(ppu, x, y, palette_pixel);
+					}
 				}
-				else
-				{
-					if (!background && pixel) ppu_set_pixel(ppu, x, y, palette_pixel);
-				}
+
+				max_draw--;
 			}
 		}
 	}

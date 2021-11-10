@@ -12,6 +12,9 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
+const char* cart_path = "res/roms/ladx.gb";
+const char* save_path = "res/roms/ladx.sav";
+
 namespace app
 {
 	sf::RenderWindow window;
@@ -24,13 +27,13 @@ namespace app
 	std::deque<gmb_c::cpu> history;
 
 	gmb_c::dmg_t gameboy;
+	gmb_c::rom_t rom;
 
 	void draw();
 
 	void start()
 	{
-		gmb_c::rom_t rom;
-		gmb_c::rom_create(&rom, "res/roms/ladx.gb");
+		gmb_c::rom_create(&rom, cart_path, save_path);
 		gmb_c::dmg_create(&gameboy, &rom);
 
 		window.create(sf::VideoMode(window_width, window_height), "gameboy");
@@ -63,6 +66,12 @@ namespace app
     	});
 	}
 
+	void stop()
+	{
+		gmb_c::rom_dump_save(&rom, &gameboy.mmu, save_path);
+		gmb_c::rom_destroy(&rom);
+	}
+
 	void run()
 	{
 		bool debugging = false;
@@ -70,18 +79,18 @@ namespace app
 		{
 			// history.push_front(gameboy.cpu);
 			// while (history.size() > 64) history.pop_back();
-			// if (gameboy.cpu.registers.pc == 0x62C2)
-			// {
-			// 	debugging = true;
-			// }
-			// if (debugging)
-			// {
-			// 	gmb_c::opc_t* opcode = &gmb_c::opc_opcodes[gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc)];
-			// 	gmb_c::cpu_trace(&gameboy.cpu, opcode);
-			// 	gmb_c::cpu_dump(&gameboy.cpu);
-			// 	printf(">: ");
-			// 	getchar();
-			// }
+			if (gameboy.cpu.registers.pc == 0x5F1D)// && gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc) == 0x22)
+			{
+				// debugging = true;
+			}
+			if (debugging)
+			{
+				gmb_c::opc_t* opcode = &gmb_c::opc_opcodes[gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc)];
+				gmb_c::cpu_trace(&gameboy.cpu, opcode);
+				gmb_c::cpu_dump(&gameboy.cpu);
+				printf(">: ");
+				getchar();
+			}
 			gmb_c::dmg_cycle(&gameboy);
 		}
 	}
@@ -144,7 +153,7 @@ namespace app
 
 		window.draw(lcd_sprite);
 
-		// text.setString(std::to_string(gmb_c::mmu_peek8(&gameboy.mmu, 0xFF4B)));
+		// text.setString(std::to_string(gmb_c::mmu_peek8(&gameboy.mmu, MMAP_IO_STAT)));
 		// text.setCharacterSize(24);
 		// window.draw(text);
 
@@ -156,6 +165,7 @@ int main()
 {
 	app::start();
 	app::run();
+	app::stop();
 
 	return EXIT_SUCCESS;
 }

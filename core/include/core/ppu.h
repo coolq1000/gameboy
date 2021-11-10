@@ -21,9 +21,9 @@
 typedef enum
 {
 	MODE_H_BLANK,
+	MODE_V_BLANK,
 	MODE_OAM,
-	MODE_LCD_TRANSFER,
-	MODE_V_BLANK
+	MODE_LCD_TRANSFER
 } ppu_mode_t;
 
 typedef struct
