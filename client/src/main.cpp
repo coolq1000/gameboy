@@ -12,9 +12,9 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "res/roms/zs.gbc";
-// const char* save_path = "res/roms/ladx.sav";
-const char* save_path = "";
+const char* cart_path = "res/roms/ladx.gbc";
+const char* save_path = "res/roms/ladx.sav";
+// const char* save_path = "";
 
 namespace app
 {
@@ -35,7 +35,7 @@ namespace app
 	void start()
 	{
 		gmb_c::rom_create(&rom, cart_path, save_path);
-		gmb_c::dmg_create(&gameboy, &rom);
+		gmb_c::dmg_create(&gameboy, &rom, true);
 
 		window.create(sf::VideoMode(window_width, window_height), "gameboy");
 
@@ -139,14 +139,7 @@ namespace app
 		{
 			for (size_t y = 0; y < lcd_height; y++)
 			{
-				uint8_t pixel = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y) + 1;
-				uint8_t r = 0, g = 0, b = 0, a = 0xFF;
-
-				r = gmb_c::ppu_palette[pixel][0];
-				g = gmb_c::ppu_palette[pixel][1];
-				b = gmb_c::ppu_palette[pixel][2];
-
-				lcd_pixels.get()[x + (y * 160)] = (a << 24) | (b << 16) | (g << 8) | r;
+				lcd_pixels.get()[x + (y * 160)] = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y) | 0xFF000000;
 			}
 		}
 

@@ -73,12 +73,16 @@ typedef struct cpu
 		int pending;
 		bool master;
 	} interrupt;
+	struct
+	{
+		bool enabled;
+	} cgb;
 
 	bool stopped;
 	bool halted;
 } cpu_t;
 
-void cpu_create(cpu_t* cpu);
+void cpu_create(cpu_t* cpu, bool is_cgb);
 void cpu_destroy(cpu_t* cpu);
 
 void cpu_fault(cpu_t* cpu, mmu_t* mmu, opc_t* opc, const char* message);

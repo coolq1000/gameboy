@@ -27,6 +27,8 @@
 #define MMAP_IO_OBP0 0xFF48
 #define MMAP_IO_OBP1 0xFF49
 
+#define MMAP_IO_BGPD 0xFF69
+
 extern int flag_hit;
 
 typedef struct

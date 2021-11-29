@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void cpu_create(cpu_t* cpu)
+void cpu_create(cpu_t* cpu, bool is_cgb)
 {
 	/* setup registers */
 	cpu->registers.af = 0x01B0;
@@ -26,6 +26,13 @@ void cpu_create(cpu_t* cpu)
 	/* halt */
 	cpu->stopped = false;
 	cpu->halted = false;
+
+	/* cgb */
+	cpu->cgb.enabled = is_cgb;
+	if (is_cgb)
+	{
+		cpu->registers.a = 0x11;
+	}
 }
 
 void cpu_destroy(cpu_t* cpu)
