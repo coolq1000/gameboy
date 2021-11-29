@@ -105,19 +105,34 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 				{
 					uint8_t original = mmu->io[0x00] & 0x30;
 					uint8_t input = 0b11000000;
+
+					/* unpack buttons, so we can modify them */
+					uint8_t right = mmu->buttons.right;
+					uint8_t left = mmu->buttons.left;
+					uint8_t up = mmu->buttons.up;
+					uint8_t down = mmu->buttons.down;
+					uint8_t a = mmu->buttons.a;
+					uint8_t b = mmu->buttons.b;
+					uint8_t select = mmu->buttons.select;
+					uint8_t start = mmu->buttons.start;
+
+					/* you couldn't actually press two opposite directions at once */
+					if (right && left) { right = 0; left = 0; }
+					if (up && down) { up = 0; down = 0; }
+
 					if (!(mmu->io[0x00] & 0x10)) /* directions */
 					{
-						input |= (mmu->buttons.right	? 0 : 0b00000001);
-						input |= (mmu->buttons.left		? 0 : 0b00000010);
-						input |= (mmu->buttons.up		? 0 : 0b00000100);
-						input |= (mmu->buttons.down		? 0 : 0b00001000);
+						input |= (right		? 0 : 0b00000001);
+						input |= (left		? 0 : 0b00000010);
+						input |= (up		? 0 : 0b00000100);
+						input |= (down		? 0 : 0b00001000);
 					}
 					else if (!(mmu->io[0x00] & 0x20)) /* actions */
 					{
-						input |= (mmu->buttons.a		? 0 : 0b00000001);
-						input |= (mmu->buttons.b		? 0 : 0b00000010);
-						input |= (mmu->buttons.select	? 0 : 0b00000100);
-						input |= (mmu->buttons.start	? 0 : 0b00001000);
+						input |= (a			? 0 : 0b00000001);
+						input |= (b			? 0 : 0b00000010);
+						input |= (select	? 0 : 0b00000100);
+						input |= (start		? 0 : 0b00001000);
 					}
 					else
 					{
