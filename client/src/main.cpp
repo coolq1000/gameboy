@@ -35,7 +35,7 @@ namespace app
 	void start()
 	{
 		gmb_c::rom_create(&rom, cart_path, save_path);
-		gmb_c::dmg_create(&gameboy, &rom, true);
+		gmb_c::dmg_create(&gameboy, &rom, false);
 
 		window.create(sf::VideoMode(window_width, window_height), "gameboy");
 

@@ -7,11 +7,12 @@
 void mmu_create(mmu_t* mmu, rom_t* rom)
 {
 	/* point cartridge memory to rom data */
-	mmu->cart[0] = &rom->cart_data[0x0000];
-	mmu->cart[1] = &rom->cart_data[0x4000];
+	mmu->cart[0] = &rom->cart_data[MMAP_ROM_00];
+	mmu->cart[1] = &rom->cart_data[MMAP_ROM_01];
 
 	/* allocate memory */
-	mmu->vram = (uint8_t*)malloc(0x2000);
+	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
+		mmu->vram[i] = (uint8_t*)malloc(VRAM_SIZE);
 	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
 		mmu->xram[i] = (uint8_t*)malloc(XRAM_SIZE);
 	for (size_t i = 0; i < CGB_WRAM_COUNT; i++)
@@ -24,11 +25,12 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 	mmu->null_mem = 0;
 
 	/* clear out memory */
-	memset(mmu->vram, 0, sizeof(mmu->vram));
 	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
-		memset(mmu->xram[i], 0, sizeof(mmu->xram));
+		memset(mmu->vram[i], 0, VRAM_SIZE);
+	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
+		memset(mmu->xram[i], 0, XRAM_SIZE);
 	for (size_t i = 0; i < CGB_WRAM_COUNT; i++)
-		memset(mmu->wram[i], 0, sizeof(mmu->wram[0]));
+		memset(mmu->wram[i], 0, WRAM_SIZE);
 	memset(mmu->oam, 0, sizeof(mmu->oam));
 	memset(mmu->io, 0, sizeof(mmu->io));
 	memset(mmu->hram, 0, sizeof(mmu->hram));
@@ -46,7 +48,8 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 
 void mmu_destroy(mmu_t* mmu)
 {
-	free(mmu->vram);
+	for (size_t i = 0; i < CGB_VRAM_COUNT; i++)
+		free(mmu->vram[i]);
 	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
 		free(mmu->xram[i]);
 	for (size_t i = 0; i < CGB_WRAM_COUNT; i++)
@@ -72,7 +75,7 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 		return &mmu->cart[1][address - 0x4000];
 	case 0x8000:
 	case 0x9000:
-		return &mmu->vram[address - 0x8000];
+		return &mmu->vram[(MMAP_IO_VBK & 0xFF) & 0x1][address - 0x8000];
 	case 0xA000:
 	case 0xB000:
 		return &mmu->xram[0][address - 0xA000];
