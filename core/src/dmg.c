@@ -1,5 +1,8 @@
 #include "core/dmg.h"
 
+#include <stdio.h> // todo: remove me
+#include <stdlib.h> // todo: remove me
+
 void dmg_create(dmg_t* dmg, rom_t* rom, bool is_cgb)
 {
 	cpu_create(&dmg->cpu, is_cgb);
@@ -16,6 +19,8 @@ void dmg_destroy(dmg_t* dmg)
 
 void dmg_cycle(dmg_t* dmg)
 {
+	printf("callback: %llX\n", &dmg->ppu);
+	exit(EXIT_SUCCESS);
 	cpu_cycle(&dmg->cpu, &dmg->mmu);
 	ppu_cycle(&dmg->ppu, &dmg->mmu, &dmg->cpu, dmg->cpu.clock.cycles);
 }

@@ -2593,7 +2593,7 @@ void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 void cpu_request(cpu_t* cpu, mmu_t* mmu, uint8_t index)
 {
 	/* set interrupt request flag bit */
-	mmu->io[IRF & 0xFF] |= index;
+	mmu->io.irf |= index;
 }
 
 void cpu_interrupt(cpu_t* cpu, mmu_t* mmu, uint16_t address)
@@ -2621,9 +2621,7 @@ void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
 	// }
 
 	/* decode pending interrupts */
-	uint8_t interrupt_enable = mmu->interrupt_enable;
-	uint8_t interrupt_request = mmu->io[IRF & 0xFF];
-	uint8_t interrupt_flags = interrupt_enable & interrupt_request;
+	uint8_t interrupt_flags = mmu->memory.interrupt_enable & mmu->io.irf;
 
 	/* check power mode */
 	// if (cpu->halted)
@@ -2654,31 +2652,31 @@ void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
 		{
 			/* v-blank interrupt */
 			cpu_interrupt(cpu, mmu, INT_V_BLANK);
-			mmu->io[IRF & 0xFF] &= ~INT_V_BLANK_INDEX;
+			mmu->io.irf &= ~INT_V_BLANK_INDEX;
 		}
 		else if (interrupt_flags & INT_LCD_STAT_INDEX)
 		{
 			/* lcd-stat interrupt */
 			cpu_interrupt(cpu, mmu, INT_LCD_STAT);
-			mmu->io[IRF & 0xFF] &= ~INT_LCD_STAT_INDEX;
+			mmu->io.irf &= ~INT_LCD_STAT_INDEX;
 		}
 		else if (interrupt_flags & INT_TIMER_INDEX)
 		{
 			/* timer interrupt */
 			cpu_interrupt(cpu, mmu, INT_TIMER);
-			mmu->io[IRF & 0xFF] &= ~INT_TIMER_INDEX;
+			mmu->io.irf &= ~INT_TIMER_INDEX;
 		}
 		else if (interrupt_flags & INT_SERIAL_INDEX)
 		{
 			/* serial interrupt */
 			cpu_interrupt(cpu, mmu, INT_SERIAL);
-			mmu->io[IRF & 0xFF] &= ~INT_SERIAL_INDEX;
+			mmu->io.irf &= ~INT_SERIAL_INDEX;
 		}
 		else if (interrupt_flags & INT_JOYPAD_INDEX)
 		{
 			/* joypad interrupt */
 			cpu_interrupt(cpu, mmu, INT_JOYPAD);
-			mmu->io[IRF & 0xFF] &= ~INT_JOYPAD_INDEX;
+			mmu->io.irf &= ~INT_JOYPAD_INDEX;
 		}
 	}
 	else if (cpu->interrupt.pending)
@@ -2690,32 +2688,32 @@ void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
 	cpu->clock.div_diff += cpu->clock.cycles;
 	if (cpu->clock.div_diff >= (16 * 16))
 	{
-		mmu->io[INT_TIMER_DIV & 0xFF]++;
+		mmu->io.div++;
 		cpu->clock.div_diff -= (16 * 16);
 
-		if (mmu->io[INT_TIMER_TAC & 0xFF] & 0x4)
+		if (mmu->io.tac & 0x4)
 		{
-			uint8_t og_tima = mmu->io[INT_TIMER_TIMA & 0xFF];
-			switch (mmu->io[INT_TIMER_TAC & 0xFF] & 0x3)
+			uint8_t og_tima = mmu->io.tima;
+			switch (mmu->io.tac & 0x3)
 			{
 			case 0b00:
-				if (cpu->clock.tima_mod % 64) mmu->io[INT_TIMER_TIMA & 0xFF]++;
+				if (cpu->clock.tima_mod % 64) mmu->io.tima++;
 				break;
 			case 0b01:
-				if (cpu->clock.tima_mod % 1) mmu->io[INT_TIMER_TIMA & 0xFF]++;
+				if (cpu->clock.tima_mod % 1) mmu->io.tima++;
 				break;
 			case 0b10:
-				if (cpu->clock.tima_mod % 4) mmu->io[INT_TIMER_TIMA & 0xFF]++;
+				if (cpu->clock.tima_mod % 4) mmu->io.tima++;
 				break;
 			case 0b11:
-				if (cpu->clock.tima_mod % 16) mmu->io[INT_TIMER_TIMA & 0xFF]++;
+				if (cpu->clock.tima_mod % 16) mmu->io.tima++;
 				break;
 			}
 
-			if (mmu->io[INT_TIMER_TIMA & 0xFF] < og_tima) // tima timer overflown
+			if (mmu->io.tima < og_tima) // tima timer overflown
 			{
 				cpu_request(cpu, mmu, INT_TIMER_INDEX);
-				mmu->io[INT_TIMER_TIMA & 0xFF] = mmu->io[INT_TIMER_TMA & 0xFF];
+				mmu->io.tima = mmu->io.tma;
 			}
 		}
 

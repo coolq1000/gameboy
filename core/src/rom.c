@@ -99,7 +99,7 @@ void rom_dump_save(rom_t* rom, void* mmu, const char* save_path)
 		if (save_file)
 		{
 			/* write out xram buffer */
-			fwrite(mmu_->xram[0], sizeof(uint8_t), XRAM_SIZE, save_file); // todo: dump all buffers
+			fwrite(mmu_->memory.xram[0], sizeof(uint8_t), XRAM_SIZE, save_file); // todo: dump all buffers
 
 			fclose(save_file);
 		}

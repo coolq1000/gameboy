@@ -51,7 +51,7 @@ uint32_t ppu_get_pixel(ppu_t* ppu, size_t x, size_t y);
 
 uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, size_t tile_y, bool is_sprite);
 uint8_t ppu_convert_dmg_palette(uint8_t palette, uint8_t color_id);
-uint16_t ppu_convert_cgb_palette(mmu_t* mmu, uint8_t palette_id, uint8_t color_id);
+uint16_t ppu_convert_cgb_palette(mmu_t* mmu, uint8_t* palette, uint8_t palette_id, uint8_t color_id);
 
 uint32_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, uint8_t x, uint8_t y, uint8_t is_window);
 void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y);

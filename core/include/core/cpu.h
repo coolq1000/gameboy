@@ -12,8 +12,6 @@
 #define IS_ZERO(reg) (!(reg))
 
 /* interrupts */
-#define IRF 0xFF0F /* interrupt request flag */
-
 #define INT_V_BLANK		0x40
 #define INT_LCD_STAT	0x48
 #define INT_TIMER		0x50
@@ -25,11 +23,6 @@
 #define INT_TIMER_INDEX		(1 << 2)
 #define INT_SERIAL_INDEX	(1 << 3)
 #define INT_JOYPAD_INDEX	(1 << 4)
-
-#define INT_TIMER_DIV	0xFF04
-#define INT_TIMER_TIMA	0xFF05
-#define INT_TIMER_TMA	0xFF06
-#define INT_TIMER_TAC	0xFF07
 
 typedef struct cpu
 {

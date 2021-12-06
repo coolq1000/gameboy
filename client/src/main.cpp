@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <cmath>
 #include <deque>
 #include <sstream>
 #include <core/dmg.hpp>
@@ -13,8 +14,8 @@ constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
 const char* cart_path = "res/roms/ladx.gbc";
-const char* save_path = "res/roms/ladx.sav";
-// const char* save_path = "";
+// const char* save_path = "res/roms/poke_red.sav";
+const char* save_path = "";
 
 namespace app
 {
@@ -78,9 +79,9 @@ namespace app
 		bool debugging = false;
 		while (window.isOpen())
 		{
-			// history.push_front(gameboy.cpu);
-			// while (history.size() > 64) history.pop_back();
-			if (gameboy.cpu.registers.pc == 0x5F1D)// && gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc) == 0x22)
+			history.push_front(gameboy.cpu);
+			while (history.size() > 64) history.pop_back();
+			if (gameboy.cpu.registers.pc == 0x570)// && gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc) == 0x22)
 			{
 				// debugging = true;
 			}
@@ -92,8 +93,17 @@ namespace app
 				printf(">: ");
 				getchar();
 			}
-			gmb_c::dmg_cycle(&gameboy);
+			// __debugbreak();
+			gmb_c::dmg_t* gb = &gameboy;
+			printf("gb: %llX\n", )
+			printf("callback: %llX\n", &gb->ppu);
+			gmb_c::dmg_cycle(gb);
 		}
+	}
+
+	float lerp(float a, float b, float t)
+	{
+		return a + t * (b - a);
 	}
 
 	void draw()
@@ -139,7 +149,35 @@ namespace app
 		{
 			for (size_t y = 0; y < lcd_height; y++)
 			{
-				lcd_pixels.get()[x + (y * 160)] = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y) | 0xFF000000;
+				uint32_t raw_pixel = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y);
+
+				const static float saturation = 0.85f;
+				const static float gamma = 1.5f;
+
+				uint8_t a = 0xFF;
+				uint8_t r = (raw_pixel >> 16) & 0xFF;
+				uint8_t g = (raw_pixel >> 8) & 0xFF;
+				uint8_t b = (raw_pixel >> 0) & 0xFF;
+
+				float r_f = ((float)r) / 0xFF;
+				float g_f = ((float)g) / 0xFF;
+				float b_f = ((float)b) / 0xFF;
+
+				float luma = (r_f + g_f + b_f) / 3.0f;
+
+				r_f = lerp(luma, r_f, saturation);
+				g_f = lerp(luma, g_f, saturation);
+				b_f = lerp(luma, b_f, saturation);
+
+				r_f = std::pow(r_f, 1.0f / gamma);
+				g_f = std::pow(g_f, 1.0f / gamma);
+				b_f = std::pow(b_f, 1.0f / gamma);
+
+				r = std::min(std::max(r_f, 0.0f), 1.0f) * 0xFF;
+				g = std::min(std::max(g_f, 0.0f), 1.0f) * 0xFF;
+				b = std::min(std::max(b_f, 0.0f), 1.0f) * 0xFF;
+
+				lcd_pixels.get()[x + (y * 160)] = (a << 24) | (r << 16) | (g << 8) | b;
 			}
 		}
 
