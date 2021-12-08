@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include "rom.h"
+#include "apu.h"
 
 #define GET_BIT(value, index) (((value) & (1 << index)) != 0)
 #define SET_BIT(value, index) ((value) | (1 << index))
@@ -33,6 +34,7 @@
 #define MMAP_IO_TMA 0xFF06
 #define MMAP_IO_TAC 0xFF07
 #define MMAP_IO_IRF 0xFF0F
+#define MMAP_IO_NR52 0xFF26
 #define MMAP_IO_LCDC 0xFF40
 #define MMAP_IO_STAT 0xFF41
 #define MMAP_IO_SCY 0xFF42
@@ -44,6 +46,7 @@
 #define MMAP_IO_OBP1 0xFF49
 #define MMAP_IO_WY 0xFF4A
 #define MMAP_IO_WX 0xFF4B
+#define MMAP_IO_KEY1 0xFF4D
 #define MMAP_IO_VBK 0xFF4F
 #define MMAP_IO_BGPI 0xFF68
 #define MMAP_IO_BGPD 0xFF69
@@ -92,7 +95,8 @@ typedef struct
         uint8_t obp1;
         uint8_t wy;
         uint8_t wx;
-        uint8_t vbk; // only last bit readable
+        union { uint8_t key1; struct { uint8_t prepare_speed_switch : 1; uint8_t _pad_00 : 6; uint8_t current_speed : 1; }; };
+        union { uint8_t vbk; struct { uint8_t vram_bank : 1; uint8_t _pad_01 : 7; }; }; // only last bit readable
         uint8_t bgpi;
         uint8_t bgpd;
         uint8_t obpi;
@@ -100,10 +104,10 @@ typedef struct
         uint8_t svbk; // only last two bits readable
     } io;
 
-    struct
-    {
+    // struct
+    // {
 
-    } mbc;
+    // } mbc;
 
     struct
     {
@@ -117,6 +121,8 @@ typedef struct
         uint8_t a, b;
         uint8_t down, up, left, right;
     } buttons;
+
+    apu_t apu;
 
     uint8_t null_mem;
 } mmu_t;

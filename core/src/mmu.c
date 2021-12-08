@@ -44,6 +44,9 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 	{
 		memcpy(mmu->memory.xram[0], rom->save_data, XRAM_SIZE); // todo read all buffers
 	}
+
+	/* setup apu */
+	apu_create(&mmu->apu);
 }
 
 void mmu_destroy(mmu_t* mmu)
@@ -57,6 +60,8 @@ void mmu_destroy(mmu_t* mmu)
 	free(mmu->memory.oam);
 	free(mmu->memory.io);
 	free(mmu->memory.hram);
+
+	apu_destroy(&mmu->apu);
 }
 
 uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
@@ -75,7 +80,7 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 		return &mmu->memory.cart[1][address - 0x4000];
 	case 0x8000:
 	case 0x9000:
-		return &mmu->memory.vram[mmu->io.vbk][address - 0x8000];
+		return &mmu->memory.vram[mmu->io.vram_bank][address - 0x8000];
 	case 0xA000:
 	case 0xB000:
 		return &mmu->memory.xram[0][address - 0xA000];
@@ -98,6 +103,9 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 		case 0xF00:
 			switch (address)
 			{
+			case MMAP_IO_NR52:
+				mmu->null_mem = 0xFA;
+				return &mmu->null_mem;
 			case MMAP_IO_DIV:
 				return &mmu->io.div;
 			case MMAP_IO_TIMA:
@@ -130,6 +138,9 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 				return &mmu->io.wy;
 			case MMAP_IO_WX:
 				return &mmu->io.wx;
+			case MMAP_IO_KEY1:
+				mmu->io.key1 |= 0x7E;
+				return &mmu->io.key1;
 			case MMAP_IO_VBK:
 				return &mmu->io.vbk;
 			case MMAP_IO_BGPI:

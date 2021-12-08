@@ -19,8 +19,6 @@ void dmg_destroy(dmg_t* dmg)
 
 void dmg_cycle(dmg_t* dmg)
 {
-	printf("callback: %llX\n", &dmg->ppu);
-	exit(EXIT_SUCCESS);
 	cpu_cycle(&dmg->cpu, &dmg->mmu);
 	ppu_cycle(&dmg->ppu, &dmg->mmu, &dmg->cpu, dmg->cpu.clock.cycles);
 }

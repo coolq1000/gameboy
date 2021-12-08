@@ -13,7 +13,7 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "res/roms/ladx.gbc";
+const char* cart_path = "res/roms/zs.gbc";
 // const char* save_path = "res/roms/poke_red.sav";
 const char* save_path = "";
 
@@ -36,7 +36,7 @@ namespace app
 	void start()
 	{
 		gmb_c::rom_create(&rom, cart_path, save_path);
-		gmb_c::dmg_create(&gameboy, &rom, false);
+		gmb_c::dmg_create(&gameboy, &rom, true);
 
 		window.create(sf::VideoMode(window_width, window_height), "gameboy");
 
@@ -81,7 +81,7 @@ namespace app
 		{
 			history.push_front(gameboy.cpu);
 			while (history.size() > 64) history.pop_back();
-			if (gameboy.cpu.registers.pc == 0x570)// && gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc) == 0x22)
+			if (gameboy.cpu.registers.pc == 0x407A)// && gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc) == 0x22)
 			{
 				// debugging = true;
 			}
@@ -93,11 +93,7 @@ namespace app
 				printf(">: ");
 				getchar();
 			}
-			// __debugbreak();
-			gmb_c::dmg_t* gb = &gameboy;
-			printf("gb: %llX\n", )
-			printf("callback: %llX\n", &gb->ppu);
-			gmb_c::dmg_cycle(gb);
+			gmb_c::dmg_cycle(&gameboy);
 		}
 	}
 

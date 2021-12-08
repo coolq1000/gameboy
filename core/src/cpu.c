@@ -204,8 +204,32 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x10: /* stop 0 */
-		cpu->stopped = true;
-		cpu->halted = true;
+		if (cpu->cgb.enabled)
+		{
+			if (mmu->io.prepare_speed_switch & 0x1)
+			{
+				/* do speed switch */
+				if (!mmu->io.current_speed) // transition from normal -> double
+				{
+					mmu->io.current_speed = 1;
+				}
+				else // transition from double -> normal
+				{
+					mmu->io.current_speed = 0;
+				}
+
+				mmu->io.prepare_speed_switch = 0;
+				cpu->stopped = true;
+			}
+		}
+		else
+		{
+			cpu->stopped = true;
+			cpu->halted = true;
+		}
+
+		/* reset div timer */
+		mmu->io.div = 0;
 		break;
 	case 0x11: /* ld de, d16 */
 		cpu->registers.de = imm16;
