@@ -79,8 +79,8 @@ namespace app
 		bool debugging = false;
 		while (window.isOpen())
 		{
-			history.push_front(gameboy.cpu);
-			while (history.size() > 64) history.pop_back();
+			// history.push_front(gameboy.cpu);
+			// while (history.size() > 64) history.pop_back();
 			if (gameboy.cpu.registers.pc == 0x407A)// && gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc) == 0x22)
 			{
 				// debugging = true;

@@ -142,6 +142,7 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 				mmu->io.key1 |= 0x7E;
 				return &mmu->io.key1;
 			case MMAP_IO_VBK:
+				mmu->io.vbk |= 0xFE;
 				return &mmu->io.vbk;
 			case MMAP_IO_BGPI:
 				return &mmu->io.bgpi;
@@ -275,7 +276,10 @@ void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 			// todo: enable ram
 			break;
 		case 0x2000:
-			mmu->memory.cart[1] = mmu->memory.cart[0] + (0x4000 * (value ? value : 1)); // todo: check this should go up to 1
+			if (value <= 0x80)
+			{
+				mmu->memory.cart[1] = mmu->memory.cart[0] + (0x4000 * (value ? value : 1)); // todo: check this should go up to 1
+			}
 			break;
 		case 0x4000:
 			break; // todo: fixme!!!

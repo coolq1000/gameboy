@@ -20,6 +20,8 @@ void rom_create(rom_t* rom, const char* cart_path, const char* save_path)
 	/* load cartridge & save */
 	rom_load_cart(rom, cart_path);
 	rom_load_save(rom, save_path);
+
+	printf("cart size: %X\n", rom->cart_size);
 }
 
 void rom_destroy(rom_t* rom)
