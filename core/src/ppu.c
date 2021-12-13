@@ -73,7 +73,7 @@ void ppu_set_stat_mode(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu)
 
 void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 {
-	ppu->cycles += cycles;
+	ppu->cycles += cycles / 4;
 
 	switch (ppu->mode)
 	{
@@ -110,7 +110,10 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles)
 		{
 			ppu_render_line(ppu, mmu, ppu->line);
 			ppu->mode = MODE_H_BLANK;
-			// todo: hdma transfer
+			
+			/* hdma transfer */
+			if (mmu->hdma.hblank && mmu->hdma.length > 0) mmu->hdma.to_copy = 0x10;
+
 			ppu_set_stat_mode(ppu, mmu, cpu);
 			ppu->cycles -= CYCLES_LCD_TRANSFER;
 		}
@@ -147,29 +150,23 @@ uint32_t ppu_get_pixel(ppu_t* ppu, size_t x, size_t y)
 
 uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, size_t tile_y, bool is_sprite, uint8_t vram_bank)
 {
-	uint16_t offset = 0x00;
-	uint8_t addressing_8800 = !(mmu_peek8(mmu, MMAP_IO_LCDC) & 0x10);
+	uint16_t tile_addr;
 
-	if (!is_sprite && addressing_8800)
-	{
-		if (tile_id <= 0x7F) { offset = 0x1000; }
-		else { offset = 0x800; tile_id -= 0x80; }
-	}
-
-	uint16_t tile_addr = tile_id * 8 * 2;
+	if (!(mmu->io.lcdc & 0x10) && !is_sprite) tile_addr = (uint16_t)(0x1000 + 16 * (int8_t)tile_id);
+	else tile_addr = tile_id * 16;
 
 	/* read out each line part, assumes little-endian */
 	uint8_t pixel_line_1, pixel_line_2;
 
 	if (ppu->is_cgb)
 	{
-		pixel_line_1 = mmu->memory.vram[vram_bank][(tile_addr + tile_y * 2) + 1 + offset];
-		pixel_line_2 = mmu->memory.vram[vram_bank][(tile_addr + tile_y * 2) + 0 + offset];
+		pixel_line_1 = mmu->memory.vram[vram_bank][(tile_addr + tile_y * 2) + 1];
+		pixel_line_2 = mmu->memory.vram[vram_bank][(tile_addr + tile_y * 2) + 0];
 	}
 	else
 	{
-		pixel_line_1 = mmu_peek8(mmu, MMAP_VRAM + (tile_addr + tile_y * 2) + 1 + offset);
-		pixel_line_2 = mmu_peek8(mmu, MMAP_VRAM + (tile_addr + tile_y * 2) + 0 + offset);
+		pixel_line_1 = mmu_peek8(mmu, MMAP_VRAM + (tile_addr + tile_y * 2) + 1);
+		pixel_line_2 = mmu_peek8(mmu, MMAP_VRAM + (tile_addr + tile_y * 2) + 0);
 	}
 
 	uint8_t pixel_mask = 0x80 >> tile_x;
@@ -209,10 +206,7 @@ uint32_t ppu_apply_cgb_palette(uint16_t raw_color)
 
 uint32_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, uint8_t x, uint8_t y, uint8_t is_window)
 {
-	uint16_t map_area;
-
-	if (is_window) map_area = 0x9C00;
-	else map_area = (mmu_peek8(mmu, MMAP_IO_LCDC) & 0x8) ? 0x9C00 : 0x9800;
+	uint16_t map_area = (mmu_peek8(mmu, MMAP_IO_LCDC) & 0x8) || is_window ? 0x1C00 : 0x1800;
 
 	uint8_t tile_x = x / 8;
 	uint8_t tile_y = y / 8;
@@ -227,7 +221,7 @@ uint32_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, uint8_t x, uint8_t y, uin
 
 	uint8_t cgb_vbank = (cgb_attributes & 0x8) ? 1 : 0;
 
-	uint8_t tile_id = mmu->memory.vram[cgb_vbank][(map_area + tile_x + tile_y * 32) - MMAP_VRAM];
+	uint8_t tile_id = mmu->memory.vram[0][map_area + tile_x + tile_y * 32];
 	uint8_t tile = ppu_get_tile(ppu, mmu, tile_id, tile_pixel_x, tile_pixel_y, false, cgb_vbank);
 	
 	if (!ppu->is_cgb)
@@ -288,9 +282,21 @@ void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y)
 					if (pixel) ppu_set_pixel(ppu, x, y, palette_pixel);
 				}
 
-				max_draw--;
+				// max_draw--; // todo: figure out maximum draw
 			}
 		}
+	}
+}
+
+void ppu_debug_bg(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y)
+{
+	uint8_t tile_x = (x / 8);
+	uint8_t tile_id = tile_x + ((y / 8) * 16);
+
+	if (tile_x <= 0xF)
+	{
+		uint8_t pixel = 255 - (ppu_get_tile(ppu, mmu, tile_id, x % 8, y % 8, false, 1) * 85);
+		ppu_set_pixel(ppu, x, y, 0xFF000000 | (pixel << 16) | (pixel << 8) | (pixel));
 	}
 }
 
@@ -326,6 +332,8 @@ void ppu_render_line(ppu_t* ppu, mmu_t* mmu, size_t line)
 			{
 				ppu_render_sprites(ppu, mmu, x, line);
 			}
+
+			// ppu_debug_bg(ppu, mmu, x, line);
 		}
 	}
 	// else

@@ -114,6 +114,13 @@ void cpu_ret(cpu_t* cpu, mmu_t* mmu)
 
 void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 {
+	/* hdma transfer */
+	if (mmu->hdma.to_copy > 0)
+	{
+		mmu_hdma_copy_block(mmu);
+		return; /* don't execute while copying */
+	}
+
 	/* decode opcode & immediate values */
 	opc_t* opc = &opc_opcodes[opcode];
 	uint8_t imm8 = mmu_peek8(mmu, cpu->registers.pc + 1);

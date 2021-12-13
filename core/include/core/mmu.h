@@ -29,6 +29,7 @@
 #define MMAP_WRAM 0xC000
 #define MMAP_OAM 0xFE00
 #define MMAP_IO 0xFF00
+#define MMAP_IO_JOYP 0xFF00
 #define MMAP_IO_DIV 0xFF04
 #define MMAP_IO_TIMA 0xFF05
 #define MMAP_IO_TMA 0xFF06
@@ -41,6 +42,7 @@
 #define MMAP_IO_SCX 0xFF43
 #define MMAP_IO_LY 0xFF44
 #define MMAP_IO_LYC 0xFF45
+#define MMAP_IO_DMA 0xFF46
 #define MMAP_IO_BGP 0xFF47
 #define MMAP_IO_OBP0 0xFF48
 #define MMAP_IO_OBP1 0xFF49
@@ -48,6 +50,11 @@
 #define MMAP_IO_WX 0xFF4B
 #define MMAP_IO_KEY1 0xFF4D
 #define MMAP_IO_VBK 0xFF4F
+#define MMAP_IO_HDMA1 0xFF51 /* src - hi */
+#define MMAP_IO_HDMA2 0xFF52 /* src - lo */
+#define MMAP_IO_HDMA3 0xFF53 /* dst - hi */
+#define MMAP_IO_HDMA4 0xFF54 /* dst - lo */
+#define MMAP_IO_HDMA5 0xFF55 /* length/mode/start */
 #define MMAP_IO_BGPI 0xFF68
 #define MMAP_IO_BGPD 0xFF69
 #define MMAP_IO_OBPI 0xFF6A
@@ -60,8 +67,8 @@ extern int flag_hit;
 
 typedef struct
 {
-	/* rom */
 	rom_t* rom;
+    apu_t apu;
 
 	/* memory map */
     struct
@@ -75,7 +82,6 @@ typedef struct
         uint8_t* hram;
         uint8_t interrupt_enable;
     } memory;
-
     struct
     {
         uint8_t joyp;
@@ -90,39 +96,48 @@ typedef struct
         uint8_t scx;
         uint8_t ly;
         uint8_t lyc;
+        uint8_t dma;
         uint8_t bgp;
         uint8_t obp0;
         uint8_t obp1;
         uint8_t wy;
         uint8_t wx;
         union { uint8_t key1; struct { uint8_t prepare_speed_switch : 1; uint8_t _pad_00 : 6; uint8_t current_speed : 1; }; };
-        union { uint8_t vbk; struct { uint8_t vram_bank : 1; uint8_t _pad_01 : 7; }; }; // only last bit readable
+        union { uint8_t vbk; struct { uint8_t vram_bank : 1; uint8_t _pad_01 : 7; }; }; // only first bit readable
+        uint8_t hdma1;
+        uint8_t hdma2;
+        uint8_t hdma3;
+        uint8_t hdma4;
+        uint8_t hdma5;
         uint8_t bgpi;
         uint8_t bgpd;
         uint8_t obpi;
         uint8_t obpd;
         uint8_t svbk; // only last two bits readable
     } io;
-
     // struct
     // {
 
     // } mbc;
-
     struct
     {
         uint8_t background[CGB_PALETTE_COUNT];
         uint8_t foreground[CGB_PALETTE_COUNT];
     } palette;
-
     struct
     {
         uint8_t start, select;
         uint8_t a, b;
         uint8_t down, up, left, right;
     } buttons;
-
-    apu_t apu;
+    struct
+    {
+        uint16_t source;
+        uint16_t destination;
+        uint16_t length;
+        uint16_t to_copy;
+        bool hblank;
+    } hdma;
 
     uint8_t null_mem;
 } mmu_t;
@@ -137,5 +152,7 @@ uint16_t mmu_peek16(mmu_t* mmu, uint16_t address);
 
 void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value);
 void mmu_poke16(mmu_t* mmu, uint16_t address, uint16_t value);
+
+void mmu_hdma_copy_block(mmu_t* mmu);
 
 #endif

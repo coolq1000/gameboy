@@ -20,8 +20,6 @@ void rom_create(rom_t* rom, const char* cart_path, const char* save_path)
 	/* load cartridge & save */
 	rom_load_cart(rom, cart_path);
 	rom_load_save(rom, save_path);
-
-	printf("cart size: %X\n", rom->cart_size);
 }
 
 void rom_destroy(rom_t* rom)
@@ -101,7 +99,8 @@ void rom_dump_save(rom_t* rom, void* mmu, const char* save_path)
 		if (save_file)
 		{
 			/* write out xram buffer */
-			fwrite(mmu_->memory.xram[0], sizeof(uint8_t), XRAM_SIZE, save_file); // todo: dump all buffers
+			for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
+				fwrite(mmu_->memory.xram[i], sizeof(uint8_t), XRAM_SIZE, save_file); // todo: dump all buffers
 
 			fclose(save_file);
 		}

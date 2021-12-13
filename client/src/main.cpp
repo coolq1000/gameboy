@@ -14,8 +14,8 @@ constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
 const char* cart_path = "res/roms/zs.gbc";
-// const char* save_path = "res/roms/poke_red.sav";
-const char* save_path = "";
+const char* save_path = "res/roms/zs.sav";
+// const char* save_path = "";
 
 namespace app
 {
@@ -59,13 +59,13 @@ namespace app
         text.setOutlineColor(sf::Color(25, 25, 25, 255));
         text.setOutlineThickness(2);
         
-        std::atexit([]()
-    	{
-    		for (auto& history_element : history)
-    		{
-    			gmb_c::cpu_dump(&history_element);
-    		}
-    	});
+     //    std::atexit([]()
+    	// {
+    	// 	for (auto& history_element : history)
+    	// 	{
+    	// 		gmb_c::cpu_dump(&history_element);
+    	// 	}
+    	// });
 	}
 
 	void stop()
@@ -81,18 +81,18 @@ namespace app
 		{
 			// history.push_front(gameboy.cpu);
 			// while (history.size() > 64) history.pop_back();
-			if (gameboy.cpu.registers.pc == 0x407A)// && gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc) == 0x22)
-			{
-				// debugging = true;
-			}
-			if (debugging)
-			{
-				gmb_c::opc_t* opcode = &gmb_c::opc_opcodes[gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc)];
-				gmb_c::cpu_trace(&gameboy.cpu, opcode);
-				gmb_c::cpu_dump(&gameboy.cpu);
-				printf(">: ");
-				getchar();
-			}
+			// if (gameboy.cpu.registers.pc == 0x407A)// && gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc) == 0x22)
+			// {
+			// 	debugging = true;
+			// }
+			// if (debugging)
+			// {
+			// 	gmb_c::opc_t* opcode = &gmb_c::opc_opcodes[gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc)];
+			// 	gmb_c::cpu_trace(&gameboy.cpu, opcode);
+			// 	gmb_c::cpu_dump(&gameboy.cpu);
+			// 	printf(">: ");
+			// 	getchar();
+			// }
 			gmb_c::dmg_cycle(&gameboy);
 		}
 	}
@@ -104,6 +104,7 @@ namespace app
 
 	void draw()
 	{
+		// printf("%X\n", gameboy.mmu.memory.vram[0][0x1C67]);
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
@@ -146,6 +147,7 @@ namespace app
 			for (size_t y = 0; y < lcd_height; y++)
 			{
 				uint32_t raw_pixel = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y);
+				// lcd_pixels.get()[x + (y * 160)] = raw_pixel;
 
 				const static float saturation = 0.85f;
 				const static float gamma = 1.5f;

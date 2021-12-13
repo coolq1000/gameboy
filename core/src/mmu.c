@@ -42,7 +42,13 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 	/* load save data */
 	if (rom->save_data)
 	{
-		memcpy(mmu->memory.xram[0], rom->save_data, XRAM_SIZE); // todo read all buffers
+		for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
+		{
+			if (i * XRAM_SIZE < rom->save_size)
+			{
+				memcpy(mmu->memory.xram[i], rom->save_data + (i * XRAM_SIZE), XRAM_SIZE);
+			}
+		}
 	}
 
 	/* setup apu */
@@ -103,6 +109,44 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 		case 0xF00:
 			switch (address)
 			{
+			case MMAP_IO_JOYP:
+				uint8_t original = mmu->io.joyp & 0x30;
+				uint8_t input = 0b11000000;
+
+				/* unpack buttons, so we can modify them */
+				uint8_t right = mmu->buttons.right;
+				uint8_t left = mmu->buttons.left;
+				uint8_t up = mmu->buttons.up;
+				uint8_t down = mmu->buttons.down;
+				uint8_t a = mmu->buttons.a;
+				uint8_t b = mmu->buttons.b;
+				uint8_t select = mmu->buttons.select;
+				uint8_t start = mmu->buttons.start;
+
+				/* you couldn't actually press two opposite directions at once */
+				if (right && left) { right = 0; left = 0; }
+				if (up && down) { up = 0; down = 0; }
+
+				if (!(mmu->io.joyp & 0x10)) /* directions */
+				{
+					input |= (right		? 0 : 0b00000001);
+					input |= (left		? 0 : 0b00000010);
+					input |= (up		? 0 : 0b00000100);
+					input |= (down		? 0 : 0b00001000);
+				}
+				else if (!(mmu->io.joyp & 0x20)) /* actions */
+				{
+					input |= (a			? 0 : 0b00000001);
+					input |= (b			? 0 : 0b00000010);
+					input |= (select	? 0 : 0b00000100);
+					input |= (start		? 0 : 0b00001000);
+				}
+				else
+				{
+					input |= 0b00001111;
+				}
+				mmu->io.joyp = input | original;
+				return &mmu->io.joyp;
 			case MMAP_IO_NR52:
 				mmu->null_mem = 0xFA;
 				return &mmu->null_mem;
@@ -128,6 +172,8 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 				return &mmu->io.ly;
 			case MMAP_IO_LYC:
 				return &mmu->io.lyc;
+			case MMAP_IO_DMA:
+				return &mmu->io.dma;
 			case MMAP_IO_BGP:
 				return &mmu->io.bgp;
 			case MMAP_IO_OBP0:
@@ -144,6 +190,16 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 			case MMAP_IO_VBK:
 				mmu->io.vbk |= 0xFE;
 				return &mmu->io.vbk;
+			case MMAP_IO_HDMA1:
+				return &mmu->io.hdma1;
+			case MMAP_IO_HDMA2:
+				return &mmu->io.hdma2;
+			case MMAP_IO_HDMA3:
+				return &mmu->io.hdma3;
+			case MMAP_IO_HDMA4:
+				return &mmu->io.hdma4;
+			case MMAP_IO_HDMA5:
+				return &mmu->io.hdma5;
 			case MMAP_IO_BGPI:
 				return &mmu->io.bgpi;
 			case MMAP_IO_BGPD:
@@ -159,49 +215,9 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 			default:
 				switch (address & 0xF0)
 				{
-				case 0x00:
-				{
-					uint8_t original = mmu->io.joyp & 0x30;
-					uint8_t input = 0b11000000;
-
-					/* unpack buttons, so we can modify them */
-					uint8_t right = mmu->buttons.right;
-					uint8_t left = mmu->buttons.left;
-					uint8_t up = mmu->buttons.up;
-					uint8_t down = mmu->buttons.down;
-					uint8_t a = mmu->buttons.a;
-					uint8_t b = mmu->buttons.b;
-					uint8_t select = mmu->buttons.select;
-					uint8_t start = mmu->buttons.start;
-
-					/* you couldn't actually press two opposite directions at once */
-					if (right && left) { right = 0; left = 0; }
-					if (up && down) { up = 0; down = 0; }
-
-					if (!(mmu->io.joyp & 0x10)) /* directions */
-					{
-						input |= (right		? 0 : 0b00000001);
-						input |= (left		? 0 : 0b00000010);
-						input |= (up		? 0 : 0b00000100);
-						input |= (down		? 0 : 0b00001000);
-					}
-					else if (!(mmu->io.joyp & 0x20)) /* actions */
-					{
-						input |= (a			? 0 : 0b00000001);
-						input |= (b			? 0 : 0b00000010);
-						input |= (select	? 0 : 0b00000100);
-						input |= (start		? 0 : 0b00001000);
-					}
-					else
-					{
-						input |= 0b00001111;
-					}
-					mmu->io.joyp = input | original;
-					return &mmu->io.joyp;
-				}
-				case 0x10: case 0x20: case 0x30:
-				case 0x40: case 0x50: case 0x60:
-				case 0x70:
+				case 0x00: case 0x10: case 0x20:
+				case 0x30: case 0x40: case 0x50:
+				case 0x60: case 0x70:
 					return &mmu->memory.io[address - 0xFF00];
 				}
 				return &mmu->memory.hram[address - 0xFF80];
@@ -236,26 +252,63 @@ void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 	{
 		switch (address)
 		{
-		case 0xFF00:
+		case MMAP_IO_JOYP:
 		{
 			uint8_t input = mmu->io.joyp;
 			mmu->io.joyp = (value & 0x30) | (input & 0xCF); // only permit writing to bits 4 & 5
 			return;
 		}
-		case 0xFF46: /* dma transfer */
+		case MMAP_IO_DMA:
 			for (uint16_t copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
 			{
 				mmu_poke8(mmu, 0xFE00 + (copy_addr & 0xFF), mmu_peek8(mmu, copy_addr));
 			}
 			return;
-		case 0xFF69:
+		case MMAP_IO_HDMA1:
+			if (value < 0x80 || (value > 0xA0 && value < 0xE0))
+			{
+				mmu->io.hdma1 = value;
+			}
+			return;
+		case MMAP_IO_HDMA2:
+			mmu->io.hdma2 = value & 0xF0;
+			return;
+		case MMAP_IO_HDMA3:
+			mmu->io.hdma3 = (value & 0x1F) | 0x80;
+			return;
+		case MMAP_IO_HDMA4:
+			mmu->io.hdma4 = value & 0xF0;
+			return;
+		case MMAP_IO_HDMA5:
+			mmu->hdma.length = ((value & 0x7F) + 1) << 4;
+			mmu->hdma.source = (mmu->io.hdma1 << 8) | (mmu->io.hdma2);
+			mmu->hdma.destination = (mmu->io.hdma3 << 8) | (mmu->io.hdma4);
+
+			/* unset bit 7 to indicate running */
+			mmu->io.hdma5 = value & 0x7F;
+
+			if (value & 0x80)
+			{
+				/* h-blank dma */
+				mmu->hdma.hblank = true;
+
+				// fixme: if the screen is off, copy one block immediately (set to_copy to 0x10)
+			}
+			else
+			{
+				/* general purpose dma */
+				mmu->hdma.hblank = false;
+				mmu->hdma.to_copy = mmu->hdma.length;
+			}
+			return;
+		case MMAP_IO_BGPD:
 			mmu->palette.background[mmu->io.bgpi & 0x3F] = value;
 			if (mmu->io.bgpi & 0x80)
 			{
 				mmu->io.bgpi = (((mmu->io.bgpi & 0x3F) + 1) & 0x3F) | 0x80;
 			}
 			return;
-		case 0xFF6B:
+		case MMAP_IO_OBPD:
 			mmu->palette.foreground[mmu->io.obpi & 0x3F] = value;
 			if (mmu->io.obpi & 0x80)
 			{
@@ -296,4 +349,23 @@ void mmu_poke16(mmu_t* mmu, uint16_t address, uint16_t value)
 {
 	mmu_poke8(mmu, address, value & 0xFF);
 	mmu_poke8(mmu, address + 1, (value >> 8) & 0xFF);
+}
+
+void mmu_hdma_copy_block(mmu_t* mmu)
+{
+	// fixme: actually consider timing rather than copying it all at once
+	for (; mmu->hdma.to_copy > 0; mmu->hdma.to_copy--)
+	{
+		mmu_poke8(mmu, mmu->hdma.destination, mmu_peek8(mmu, mmu->hdma.source));
+		mmu->hdma.source++;
+		mmu->hdma.destination++;
+		mmu->hdma.length--;
+	}
+
+	/* update hdma registers */
+	mmu->io.hdma1 = mmu->hdma.source >> 8;
+	mmu->io.hdma2 = mmu->hdma.source & 0xFF;
+	mmu->io.hdma3 = mmu->hdma.destination >> 8;
+	mmu->io.hdma4 = mmu->hdma.destination & 0xFF;
+	mmu->io.hdma5 = mmu->hdma.length ? (mmu->hdma.length >> 4) - 1 : 0xFF;
 }
