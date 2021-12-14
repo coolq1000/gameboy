@@ -23,3 +23,11 @@ target_include_directories(client PRIVATE deps/sfml/include)
 target_link_libraries(client sfml-graphics sfml-audio)
 
 target_compile_options(client PRIVATE -Wno-switch)
+
+if (WIN32)
+	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+		configure_file(deps/sfml/extlibs/bin/x64/openal32.dll ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+	else ()
+		configure_file(deps/sfml/extlibs/bin/x86/openal32.dll ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+	endif ()
+endif ()
