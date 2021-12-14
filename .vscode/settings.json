@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "apu.h": "c",
+        "*.tcc": "cpp",
+        "cpu.h": "c",
+        "stddef.h": "c"
+    },
+    "cmake.configureOnOpen": true
+}
