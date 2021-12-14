@@ -4,6 +4,7 @@
 
 #include "mmu.h"
 #include "cpu.h"
+#include "util.h"
 
 #define CYCLES_ELAPSED(ppu, num_cycles) (ppu->cycles >= num_cycles)
 
@@ -31,30 +32,30 @@ typedef enum
 typedef struct
 {
 	ppu_mode_t mode;
-	uint32_t cycles;
-	uint8_t line;
-	uint32_t lcd[LCD_WIDTH * LCD_HEIGHT];
+	u32 cycles;
+	u8 line;
+	u32 lcd[LCD_WIDTH * LCD_HEIGHT];
 	void (*v_blank_callback)();
 	bool is_cgb;
 } ppu_t;
 
-extern uint8_t ppu_palette[12];
+extern u8 ppu_palette[12];
 
 void ppu_create(ppu_t* ppu, bool is_cgb);
 void ppu_destroy(ppu_t* ppu);
 
 void ppu_update_ly(ppu_t* ppu, mmu_t* mmu);
-void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, size_t cycles);
+void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, usize cycles);
 
-void ppu_set_pixel(ppu_t* ppu, size_t x, size_t y, uint32_t value);
-uint32_t ppu_get_pixel(ppu_t* ppu, size_t x, size_t y);
+void ppu_set_pixel(ppu_t* ppu, usize x, usize y, u32 value);
+u32 ppu_get_pixel(ppu_t* ppu, usize x, usize y);
 
-uint8_t ppu_get_tile(ppu_t* ppu, mmu_t* mmu, uint8_t tile_id, size_t tile_x, size_t tile_y, bool is_sprite, uint8_t vram_bank);
-uint8_t ppu_convert_dmg_palette(uint8_t palette, uint8_t color_id);
-uint16_t ppu_convert_cgb_palette(mmu_t* mmu, uint8_t* palette, uint8_t palette_id, uint8_t color_id);
+u8 ppu_get_tile(ppu_t* ppu, mmu_t* mmu, u8 tile_id, usize tile_x, usize tile_y, bool is_sprite, u8 vram_bank);
+u8 ppu_convert_dmg_palette(u8 palette, u8 color_id);
+u16 ppu_convert_cgb_palette(mmu_t* mmu, u8* palette, u8 palette_id, u8 color_id);
 
-uint32_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, uint8_t x, uint8_t y, uint8_t is_window);
-void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y);
-void ppu_render_line(ppu_t* ppu, mmu_t* mmu, size_t line);
+u32 ppu_render_background(ppu_t* ppu, mmu_t* mmu, u8 x, u8 y, u8 is_window);
+void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, usize x, usize y);
+void ppu_render_line(ppu_t* ppu, mmu_t* mmu, usize line);
 
 #endif

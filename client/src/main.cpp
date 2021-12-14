@@ -3,9 +3,11 @@
 #include <stdlib.h>
 #include <cmath>
 #include <deque>
+#include <vector>
 #include <sstream>
 #include <core/dmg.hpp>
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 
 constexpr auto lcd_width = 160;
 constexpr auto lcd_height = 144;
@@ -26,7 +28,10 @@ namespace app
 	sf::Text text;
 	std::unique_ptr<uint32_t> lcd_pixels;
 
-	std::deque<gmb_c::cpu> history;
+	sf::SoundBuffer sound_buffer;
+	sf::Sound sound;
+
+	std::vector<sf::Int16> samples;
 
 	gmb_c::dmg_t gameboy;
 	gmb_c::rom_t rom;
@@ -39,8 +44,7 @@ namespace app
 		gmb_c::dmg_create(&gameboy, &rom, true);
 
 		window.create(sf::VideoMode(window_width, window_height), "gameboy");
-
-		lcd.create(lcd_width, lcd_height);
+		bool created = lcd.create(lcd_width, lcd_height);
 
 		lcd_sprite = sf::Sprite(lcd);
 		auto scale_x = window_width / lcd_width;
@@ -51,21 +55,17 @@ namespace app
 
 		window.setFramerateLimit(60);
 
-		gameboy.ppu.v_blank_callback = draw;
+		sound.setBuffer(sound_buffer);
+		for (size_t i = 0; i < 44100; i++)
+		{
+			samples.emplace_back(gameboy.mmu.apu.ch1.sample_callback(i));
+		}
 
-		font.loadFromFile("../../res/fonts/slkscr.ttf");
-		text.setFont(font);
-		text.setFillColor(sf::Color(200, 200, 200, 255));
-        text.setOutlineColor(sf::Color(25, 25, 25, 255));
-        text.setOutlineThickness(2);
-        
-		// std::atexit([]()
-		// {
-		// 	for (auto& history_element : history)
-		// 	{
-		// 		gmb_c::cpu_dump(&history_element);
-		// 	}
-		// });
+		sound_buffer.loadFromSamples(&samples[0], samples.size(), 1, 44100);
+		sound.setLoop(true);
+		sound.play();
+
+		gameboy.ppu.v_blank_callback = draw;
 	}
 
 	void stop()
@@ -79,20 +79,6 @@ namespace app
 		bool debugging = false;
 		while (window.isOpen())
 		{
-			// history.push_front(gameboy.cpu);
-			// while (history.size() > 64) history.pop_back();
-			// if (gameboy.cpu.registers.pc == 0x407A)// && gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc) == 0x22)
-			// {
-			// 	debugging = true;
-			// }
-			// if (debugging)
-			// {
-			// 	gmb_c::opc_t* opcode = &gmb_c::opc_opcodes[gmb_c::mmu_peek8(&gameboy.mmu, gameboy.cpu.registers.pc)];
-			// 	gmb_c::cpu_trace(&gameboy.cpu, opcode);
-			// 	gmb_c::cpu_dump(&gameboy.cpu);
-			// 	printf(">: ");
-			// 	getchar();
-			// }
 			gmb_c::dmg_cycle(&gameboy);
 		}
 	}
@@ -104,7 +90,6 @@ namespace app
 
 	void draw()
 	{
-		// printf("%X\n", gameboy.mmu.memory.vram[0][0x1C67]);
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
@@ -182,10 +167,6 @@ namespace app
 		lcd.update(reinterpret_cast<sf::Uint8*>(lcd_pixels.get()));
 
 		window.draw(lcd_sprite);
-
-		// text.setString(std::to_string(gmb_c::mmu_peek8(&gameboy.mmu, MMAP_IO_STAT)));
-		// text.setCharacterSize(24);
-		// window.draw(text);
 
 		window.display();
 	}

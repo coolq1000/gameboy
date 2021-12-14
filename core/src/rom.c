@@ -44,8 +44,8 @@ void rom_load_cart(rom_t* rom, const char* cart_path)
 		rewind(rom_file);
 
 		/* allocate & read into buffer */
-		rom->cart_data = (uint8_t*)malloc(rom->cart_size);
-		fread(rom->cart_data, rom->cart_size, sizeof(uint8_t), rom_file);
+		rom->cart_data = (u8*)malloc(rom->cart_size);
+		fread(rom->cart_data, rom->cart_size, sizeof(u8), rom_file);
 
 		fclose(rom_file);
 
@@ -77,8 +77,8 @@ void rom_load_save(rom_t* rom, const char* save_path)
 		rewind(save_file);
 
 		/* allocate & read into buffer */
-		rom->save_data = (uint8_t*)malloc(rom->save_size);
-		fread(rom->save_data, rom->save_size, sizeof(uint8_t), save_file);
+		rom->save_data = (u8*)malloc(rom->save_size);
+		fread(rom->save_data, rom->save_size, sizeof(u8), save_file);
 
 		fclose(save_file);
 	}
@@ -100,7 +100,7 @@ void rom_dump_save(rom_t* rom, void* mmu, const char* save_path)
 		{
 			/* write out xram buffer */
 			for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
-				fwrite(mmu_->memory.xram[i], sizeof(uint8_t), XRAM_SIZE, save_file); // todo: dump all buffers
+				fwrite(mmu_->memory.xram[i], sizeof(u8), XRAM_SIZE, save_file); // todo: dump all buffers
 
 			fclose(save_file);
 		}

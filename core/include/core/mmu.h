@@ -2,9 +2,9 @@
 #ifndef MMU_H
 #define MMU_H
 
-#include <stdint.h>
 #include "rom.h"
 #include "apu.h"
+#include "util.h"
 
 #define GET_BIT(value, index) (((value) & (1 << index)) != 0)
 #define SET_BIT(value, index) ((value) | (1 << index))
@@ -63,8 +63,6 @@
 #define MMAP_HRAM 0xFF80
 #define MMAP_IE 0xFFFF
 
-extern int flag_hit;
-
 typedef struct
 {
 	rom_t* rom;
@@ -73,47 +71,47 @@ typedef struct
 	/* memory map */
     struct
     {
-        uint8_t* cart[2];
-        uint8_t* vram[CGB_VRAM_COUNT];
-        uint8_t* xram[MBC5_XRAM_COUNT];
-        uint8_t* wram[CGB_WRAM_COUNT];
-        uint8_t* oam;
-        uint8_t* io;
-        uint8_t* hram;
-        uint8_t interrupt_enable;
+        u8* cart[2];
+        u8* vram[CGB_VRAM_COUNT];
+        u8* xram[MBC5_XRAM_COUNT];
+        u8* wram[CGB_WRAM_COUNT];
+        u8* oam;
+        u8* io;
+        u8* hram;
+        u8 interrupt_enable;
     } memory;
     struct
     {
-        uint8_t joyp;
-        uint8_t div;
-        uint8_t tima;
-        uint8_t tma;
-        uint8_t tac;
-        uint8_t irf;
-        uint8_t lcdc;
-        uint8_t stat;
-        uint8_t scy;
-        uint8_t scx;
-        uint8_t ly;
-        uint8_t lyc;
-        uint8_t dma;
-        uint8_t bgp;
-        uint8_t obp0;
-        uint8_t obp1;
-        uint8_t wy;
-        uint8_t wx;
-        union { uint8_t key1; struct { uint8_t prepare_speed_switch : 1; uint8_t _pad_00 : 6; uint8_t current_speed : 1; }; };
-        union { uint8_t vbk; struct { uint8_t vram_bank : 1; uint8_t _pad_01 : 7; }; }; // only first bit readable
-        uint8_t hdma1;
-        uint8_t hdma2;
-        uint8_t hdma3;
-        uint8_t hdma4;
-        uint8_t hdma5;
-        uint8_t bgpi;
-        uint8_t bgpd;
-        uint8_t obpi;
-        uint8_t obpd;
-        uint8_t svbk; // only last two bits readable
+        u8 joyp;
+        u8 div;
+        u8 tima;
+        u8 tma;
+        u8 tac;
+        u8 irf;
+        u8 lcdc;
+        u8 stat;
+        u8 scy;
+        u8 scx;
+        u8 ly;
+        u8 lyc;
+        u8 dma;
+        u8 bgp;
+        u8 obp0;
+        u8 obp1;
+        u8 wy;
+        u8 wx;
+        union { u8 key1; struct { u8 prepare_speed_switch : 1; u8 _pad_00 : 6; u8 current_speed : 1; }; };
+        union { u8 vbk; struct { u8 vram_bank : 1; u8 _pad_01 : 7; }; }; // only first bit readable
+        u8 hdma1;
+        u8 hdma2;
+        u8 hdma3;
+        u8 hdma4;
+        u8 hdma5;
+        u8 bgpi;
+        u8 bgpd;
+        u8 obpi;
+        u8 obpd;
+        u8 svbk; // only last two bits readable
     } io;
     // struct
     // {
@@ -121,37 +119,37 @@ typedef struct
     // } mbc;
     struct
     {
-        uint8_t background[CGB_PALETTE_COUNT];
-        uint8_t foreground[CGB_PALETTE_COUNT];
+        u8 background[CGB_PALETTE_COUNT];
+        u8 foreground[CGB_PALETTE_COUNT];
     } palette;
     struct
     {
-        uint8_t start, select;
-        uint8_t a, b;
-        uint8_t down, up, left, right;
+        u8 start, select;
+        u8 a, b;
+        u8 down, up, left, right;
     } buttons;
     struct
     {
-        uint16_t source;
-        uint16_t destination;
-        uint16_t length;
-        uint16_t to_copy;
+        u16 source;
+        u16 destination;
+        u16 length;
+        u16 to_copy;
         bool hblank;
     } hdma;
 
-    uint8_t null_mem;
+    u8 null_mem;
 } mmu_t;
 
 void mmu_create(mmu_t* mmu, rom_t* rom);
 void mmu_destroy(mmu_t* mmu);
 
-uint8_t* mmu_map(mmu_t* mmu, uint16_t address);
+u8* mmu_map(mmu_t* mmu, u16 address);
 
-uint8_t mmu_peek8(mmu_t* mmu, uint16_t address);
-uint16_t mmu_peek16(mmu_t* mmu, uint16_t address);
+u8 mmu_peek8(mmu_t* mmu, u16 address);
+u16 mmu_peek16(mmu_t* mmu, u16 address);
 
-void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value);
-void mmu_poke16(mmu_t* mmu, uint16_t address, uint16_t value);
+void mmu_poke8(mmu_t* mmu, u16 address, u8 value);
+void mmu_poke16(mmu_t* mmu, u16 address, u16 value);
 
 void mmu_hdma_copy_block(mmu_t* mmu);
 

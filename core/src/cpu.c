@@ -63,9 +63,9 @@ void cpu_trace(cpu_t* cpu, opc_t* opc)
 
 void cpu_stack_trace(cpu_t* cpu, mmu_t* mmu)
 {
-	for (size_t i = 0; i < 9; i++)
+	for (usize i = 0; i < 9; i++)
 	{
-		uint16_t address = (cpu->registers.sp - (i * 2)) + (4 * 2);
+		u16 address = (cpu->registers.sp - (i * 2)) + (4 * 2);
 		printf("%s %04X: %04X\n", cpu->registers.sp == address ? ">" : " ", address, mmu_peek16(mmu, address));
 	}
 }
@@ -81,27 +81,27 @@ void cpu_dump(cpu_t* cpu)
 	printf("   ime: %s\n", cpu->interrupt.master ? "enabled" : "disabled");
 }
 
-void cpu_push(cpu_t* cpu, mmu_t* mmu, uint16_t value)
+void cpu_push(cpu_t* cpu, mmu_t* mmu, u16 value)
 {
 	/* decrement stack */
-	cpu->registers.sp -= sizeof(uint16_t);
+	cpu->registers.sp -= sizeof(u16);
 
 	/* write value onto stack */
 	mmu_poke16(mmu, cpu->registers.sp, value);
 }
 
-uint16_t cpu_pop(cpu_t* cpu, mmu_t* mmu)
+u16 cpu_pop(cpu_t* cpu, mmu_t* mmu)
 {
 	/* read value from stack */
-	uint16_t value = mmu_peek16(mmu, cpu->registers.sp);
+	u16 value = mmu_peek16(mmu, cpu->registers.sp);
 
 	/* increment stack */
-	cpu->registers.sp += sizeof(uint16_t);
+	cpu->registers.sp += sizeof(u16);
 
 	return value;
 }
 
-void cpu_call(cpu_t* cpu, mmu_t* mmu, uint16_t address)
+void cpu_call(cpu_t* cpu, mmu_t* mmu, u16 address)
 {
 	cpu_push(cpu, mmu, cpu->registers.pc);
 	cpu->registers.pc = address;
@@ -112,7 +112,7 @@ void cpu_ret(cpu_t* cpu, mmu_t* mmu)
 	cpu->registers.pc = cpu_pop(cpu, mmu);
 }
 
-void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
+void cpu_execute(cpu_t* cpu, mmu_t* mmu, u8 opcode)
 {
 	/* hdma transfer */
 	if (mmu->hdma.to_copy > 0)
@@ -123,16 +123,16 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 
 	/* decode opcode & immediate values */
 	opc_t* opc = &opc_opcodes[opcode];
-	uint8_t imm8 = mmu_peek8(mmu, cpu->registers.pc + 1);
-	uint16_t imm16 = mmu_peek16(mmu, cpu->registers.pc + 1);
+	u8 imm8 = mmu_peek8(mmu, cpu->registers.pc + 1);
+	u16 imm16 = mmu_peek16(mmu, cpu->registers.pc + 1);
 
 	/* update state */
 	cpu->registers.pc += opc->length;
 	cpu->clock.cycles = opc->cycles;
 
 	/* temporary values */
-	uint8_t tmp8;
-	uint16_t tmp16;
+	u8 tmp8;
+	u16 tmp16;
 
 	/* execute based on opcode */
 	switch (opcode)
@@ -271,7 +271,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu->registers.flag_c = tmp8 >> 7;
 		break;
 	case 0x18: /* jr r8 */
-		cpu->registers.pc += (int8_t)imm8;
+		cpu->registers.pc += (i8)imm8;
 		break;
 	case 0x19: /* add hl, de */
 		tmp16 = cpu->registers.hl;
@@ -312,7 +312,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 	case 0x20: /* jr nz, r8 */
 		if (!cpu->registers.flag_z)
 		{
-			cpu->registers.pc += (int8_t)imm8;
+			cpu->registers.pc += (i8)imm8;
 			cpu->clock.cycles += 4;
 		}
 		break;
@@ -375,7 +375,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 	case 0x28: /* jr z, r8 */
 		if (cpu->registers.flag_z)
 		{
-			cpu->registers.pc += (int8_t)imm8;
+			cpu->registers.pc += (i8)imm8;
 			cpu->clock.cycles += 4;
 		}
 		break;
@@ -415,7 +415,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 	case 0x30: /* jr nc, r8 */
 		if (!cpu->registers.flag_c)
 		{
-			cpu->registers.pc += (int8_t)imm8;
+			cpu->registers.pc += (i8)imm8;
 			cpu->clock.cycles += 4;
 		}
 		break;
@@ -453,7 +453,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 	case 0x38: /* jr c, r8 */
 		if (cpu->registers.flag_c)
 		{
-			cpu->registers.pc += (int8_t)imm8;
+			cpu->registers.pc += (i8)imm8;
 			cpu->clock.cycles += 4;
 		}
 		break;
@@ -1381,7 +1381,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 		cpu_call(cpu, mmu, 0x30);
 		break;
 	case 0xF8: /* ld hl, sp+r8 */
-		cpu->registers.hl = cpu->registers.sp + (int8_t)imm8;
+		cpu->registers.hl = cpu->registers.sp + (i8)imm8;
 		cpu->registers.flag_z = false;
 		cpu->registers.flag_n = false;
 		cpu->registers.flag_h = ((cpu->registers.sp + imm8) & 0xF) < (cpu->registers.sp & 0xF);
@@ -1414,7 +1414,7 @@ void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 	}
 }
 
-void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
+void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, u8 opcode)
 {
 	/* decode opcode & immediate values */
 	opc_t* opc = &opc_opcodes_cb[opcode];
@@ -1424,8 +1424,8 @@ void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 	cpu->clock.cycles = opc->cycles;
 
 	/* temporary values */
-	uint8_t tmp8;
-	uint16_t tmp16;
+	u8 tmp8;
+	u16 tmp16;
 
 	switch (opcode)
 	{
@@ -2621,13 +2621,13 @@ void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode)
 	}
 }
 
-void cpu_request(cpu_t* cpu, mmu_t* mmu, uint8_t index)
+void cpu_request(cpu_t* cpu, mmu_t* mmu, u8 index)
 {
 	/* set interrupt request flag bit */
 	mmu->io.irf |= index;
 }
 
-void cpu_interrupt(cpu_t* cpu, mmu_t* mmu, uint16_t address)
+void cpu_interrupt(cpu_t* cpu, mmu_t* mmu, u16 address)
 {
 	/* disable interrupts */
 	cpu->interrupt.master = false;
@@ -2639,7 +2639,7 @@ void cpu_interrupt(cpu_t* cpu, mmu_t* mmu, uint16_t address)
 void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
 {
 	/* fetch opcode */
-	uint8_t opcode = mmu_peek8(mmu, cpu->registers.pc);
+	u8 opcode = mmu_peek8(mmu, cpu->registers.pc);
 
 	/* execute */
 	// if (!cpu->halted)
@@ -2652,7 +2652,7 @@ void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
 	// }
 
 	/* decode pending interrupts */
-	uint8_t interrupt_flags = mmu->memory.interrupt_enable & mmu->io.irf;
+	u8 interrupt_flags = mmu->memory.interrupt_enable & mmu->io.irf;
 
 	/* check power mode */
 	// if (cpu->halted)
@@ -2724,7 +2724,7 @@ void cpu_cycle(cpu_t* cpu, mmu_t* mmu)
 
 		if (mmu->io.tac & 0x4)
 		{
-			uint8_t og_tima = mmu->io.tima;
+			u8 og_tima = mmu->io.tima;
 			switch (mmu->io.tac & 0x3)
 			{
 			case 0b00:

@@ -2,11 +2,9 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
 #include "mmu.h"
 #include "opc.h"
+#include "util.h"
 
 /* flags */
 #define IS_ZERO(reg) (!(reg))
@@ -37,33 +35,33 @@ typedef struct cpu
 				{
 					struct
 					{
-						uint8_t flag__ : 4;
-						uint8_t flag_c : 1;
-						uint8_t flag_h : 1;
-						uint8_t flag_n : 1;
-						uint8_t flag_z : 1;
+						u8 flag__ : 4;
+						u8 flag_c : 1;
+						u8 flag_h : 1;
+						u8 flag_n : 1;
+						u8 flag_z : 1;
 					};
-					uint8_t f;
+					u8 f;
 				};
-				uint8_t a;
+				u8 a;
 			};
-			uint16_t af;
+			u16 af;
 		};
-		union { struct { uint8_t c; uint8_t b; }; uint16_t bc; };
-		union { struct { uint8_t e; uint8_t d; }; uint16_t de; };
-		union { struct { uint8_t l; uint8_t h; }; uint16_t hl; };
+		union { struct { u8 c; u8 b; }; u16 bc; };
+		union { struct { u8 e; u8 d; }; u16 de; };
+		union { struct { u8 l; u8 h; }; u16 hl; };
 
-		uint16_t sp, pc;
+		u16 sp, pc;
 	} registers;
 	struct
 	{
-		uint8_t cycles;
-		uint16_t div_diff;
-		uint8_t tima_mod;
+		u8 cycles;
+		u16 div_diff;
+		u8 tima_mod;
 	} clock;
 	struct
 	{
-		int pending;
+		usize pending;
 		bool master;
 	} interrupt;
 	struct
@@ -82,12 +80,12 @@ void cpu_fault(cpu_t* cpu, mmu_t* mmu, opc_t* opc, const char* message);
 void cpu_trace(cpu_t* cpu, opc_t* opc);
 void cpu_stack_trace(cpu_t* cpu, mmu_t* mmu);
 void cpu_dump(cpu_t* cpu);
-void cpu_call(cpu_t* cpu, mmu_t* mmu, uint16_t address);
+void cpu_call(cpu_t* cpu, mmu_t* mmu, u16 address);
 void cpu_ret(cpu_t* cpu, mmu_t* mmu);
-void cpu_execute(cpu_t* cpu, mmu_t* mmu, uint8_t opcode);
-void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, uint8_t opcode);
-void cpu_request(cpu_t* cpu, mmu_t* mmu, uint8_t index);
-void cpu_interrupt(cpu_t* cpu, mmu_t* mmu, uint16_t address);
+void cpu_execute(cpu_t* cpu, mmu_t* mmu, u8 opcode);
+void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, u8 opcode);
+void cpu_request(cpu_t* cpu, mmu_t* mmu, u8 index);
+void cpu_interrupt(cpu_t* cpu, mmu_t* mmu, u16 address);
 void cpu_cycle(cpu_t* cpu, mmu_t* mmu);
 
 #endif

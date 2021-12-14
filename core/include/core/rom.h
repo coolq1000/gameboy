@@ -2,8 +2,7 @@
 #ifndef ROM_H
 #define ROM_H
 
-#include <stdint.h>
-#include <stddef.h>
+#include "util.h"
 
 #define ROM_TITLE_LENGTH 16
 #define ROM_MANUFACTURER_LENGTH 4
@@ -26,12 +25,12 @@ typedef struct
 	} header;
 
 	/* cart data */
-	uint8_t* cart_data;
-	size_t cart_size;
+	u8* cart_data;
+	usize cart_size;
 
 	/* save data */
-	uint8_t* save_data;
-	size_t save_size;
+	u8* save_data;
+	usize save_size;
 } rom_t;
 
 void rom_create(rom_t* rom, const char* cart_path, const char* save_path);

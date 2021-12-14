@@ -3,6 +3,7 @@
 #define DMG_HPP
 
 #include <string>
+#include "util.h"
 
 namespace gmb_c
 {
@@ -60,23 +61,23 @@ namespace gmb
 	// 	}
 
 	// 	template<typename T>
-	// 	inline T peek(uint16_t address)
+	// 	inline T peek(u16 address)
 	// 	{
 	// 		T data{};
 	// 		for (size_t i = 0; i < sizeof(T); i++)
 	// 		{
-	// 			*(reinterpret_cast<uint8_t*>(&data) + i) = gmb_c::mmu_peek8(&obj.mmu, address + i);
+	// 			*(reinterpret_cast<u8*>(&data) + i) = gmb_c::mmu_peek8(&obj.mmu, address + i);
 	// 		}
 
 	// 		return data;
 	// 	}
 
 	// 	template<typename T>
-	// 	inline void poke(uint16_t address, T value)
+	// 	inline void poke(u16 address, T value)
 	// 	{
 	// 		for (size_t i = 0; i < sizeof(T); i++)
 	// 		{
-	// 			gmb_c::mmu_poke8(&obj.mmu, address + i, *(reinterpret_cast<uint8_t*>(&value) + i));
+	// 			gmb_c::mmu_poke8(&obj.mmu, address + i, *(reinterpret_cast<u8*>(&value) + i));
 	// 		}
 	// 	}
 

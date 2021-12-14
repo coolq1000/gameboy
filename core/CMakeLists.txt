@@ -10,6 +10,8 @@ set(SOURCE
 	src/opc.c include/core/opc.h
 	src/ppu.c include/core/ppu.h
 	src/rom.c include/core/rom.h
+
+	include/core/util.h
 )
 
 add_library(core STATIC ${SOURCE})
