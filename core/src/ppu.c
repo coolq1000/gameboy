@@ -216,8 +216,8 @@ uint32_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, uint8_t x, uint8_t y, uin
 	uint8_t tile_pixel_x = x % 8;
 	uint8_t tile_pixel_y = y % 8;
 
-	if (cgb_attributes & 0x20 && !is_window) tile_pixel_x = 7 - tile_pixel_x;
-	if (cgb_attributes & 0x40 && !is_window) tile_pixel_y = 7 - tile_pixel_y;
+	if (cgb_attributes & 0x20) tile_pixel_x = 7 - tile_pixel_x;
+	if (cgb_attributes & 0x40) tile_pixel_y = 7 - tile_pixel_y;
 
 	uint8_t cgb_vbank = (cgb_attributes & 0x8) ? 1 : 0;
 
@@ -231,7 +231,7 @@ uint32_t ppu_render_background(ppu_t* ppu, mmu_t* mmu, uint8_t x, uint8_t y, uin
 	else
 	{
 		uint8_t cgb_palette = cgb_attributes & 0x7;
-		return ppu_apply_cgb_palette(ppu_convert_cgb_palette(mmu, mmu->palette.background, !is_window ? cgb_palette : 1, tile));
+		return ppu_apply_cgb_palette(ppu_convert_cgb_palette(mmu, mmu->palette.background, cgb_palette, tile));
 	}
 }
 
@@ -249,10 +249,7 @@ void ppu_render_sprites(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y)
 		uint8_t sprite_tile_id = mmu->memory.oam[sprite_address + 2] & (sprite_height == 8 ? 0xFF : 0xFE);
 		uint8_t sprite_tile_attributes = mmu->memory.oam[sprite_address + 3];
 
-		uint8_t palette_0 = mmu->io.obp0;
-		uint8_t palette_1 = mmu->io.obp1;
-
-		uint8_t palette = sprite_tile_attributes & 0x10 ? palette_1 : palette_0;
+		uint8_t palette = sprite_tile_attributes & 0x10 ? mmu->io.obp1 : mmu->io.obp0;
 
 		/* check sprite active */
 		if (mmu->memory.oam[sprite_address]) // checks y coordinate != 0
@@ -302,32 +299,30 @@ void ppu_debug_bg(ppu_t* ppu, mmu_t* mmu, size_t x, size_t y)
 
 void ppu_render_line(ppu_t* ppu, mmu_t* mmu, size_t line)
 {
-	uint8_t scroll_x = mmu_peek8(mmu, MMAP_IO_SCX);
-	uint8_t scroll_y = mmu_peek8(mmu, MMAP_IO_SCY);
+	uint8_t scroll_x = mmu->io.scx;
+	uint8_t scroll_y = mmu->io.scy;
 
-	uint8_t lcd_enable = (mmu_peek8(mmu, MMAP_IO_LCDC) & 0x80) != 0;
-	uint8_t background_enable = (mmu_peek8(mmu, MMAP_IO_LCDC) & 0x1) != 0;
-	uint8_t sprites_enable = (mmu_peek8(mmu, MMAP_IO_LCDC) & 0x2) != 0;
-	uint8_t window_enable = (mmu_peek8(mmu, MMAP_IO_LCDC) & 0x20) != 0;
+	uint8_t lcd_enable = (mmu->io.lcdc & 0x80) != 0;
+	uint8_t background_enable = (mmu->io.lcdc & 0x1) != 0;
+	uint8_t sprites_enable = (mmu->io.lcdc & 0x2) != 0;
+	uint8_t window_enable = (mmu->io.lcdc & 0x20) != 0;
 
-	int window_x = ((int)mmu_peek8(mmu, MMAP_IO_WX)) - 7;
-	int window_y = mmu_peek8(mmu, MMAP_IO_WY);
+	int window_x = ((int)mmu->io.wx) - 7;
+	int window_y = mmu->io.wy;
 
 	if (lcd_enable)
 	{
 		for (size_t x = 0; x < LCD_WIDTH; x++)
 		{
-			if (background_enable) // render background
+			if (window_enable && (line >= window_y && (int)x >= window_x))
+			{
+				ppu_set_pixel(ppu, x, line, ppu_render_background(ppu, mmu, x - window_x, line - window_y, true)); // todo check LCDC.3 only if not a window
+			}
+			else if (background_enable) // render background
 			{
 				ppu_set_pixel(ppu, x, line, ppu_render_background(ppu, mmu, x + scroll_x, line + scroll_y, false));
 			}
-			if (window_enable)
-			{
-				if (line >= window_y && (int)x >= window_x)
-				{
-					ppu_set_pixel(ppu, x, line, ppu_render_background(ppu, mmu, x - window_x, line - window_y, true)); // todo check LCDC.3 only if not a window
-				}
-			}
+
 			if (sprites_enable) // render sprites
 			{
 				ppu_render_sprites(ppu, mmu, x, line);

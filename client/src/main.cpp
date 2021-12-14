@@ -13,8 +13,8 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "res/roms/zs.gbc";
-const char* save_path = "res/roms/zs.sav";
+const char* cart_path = "../../res/roms/zs.gbc";
+const char* save_path = "../../res/roms/zs.sav";
 // const char* save_path = "";
 
 namespace app
@@ -53,19 +53,19 @@ namespace app
 
 		gameboy.ppu.v_blank_callback = draw;
 
-		font.loadFromFile("res/fonts/slkscr.ttf");
+		font.loadFromFile("../../res/fonts/slkscr.ttf");
 		text.setFont(font);
 		text.setFillColor(sf::Color(200, 200, 200, 255));
         text.setOutlineColor(sf::Color(25, 25, 25, 255));
         text.setOutlineThickness(2);
         
-     //    std::atexit([]()
-    	// {
-    	// 	for (auto& history_element : history)
-    	// 	{
-    	// 		gmb_c::cpu_dump(&history_element);
-    	// 	}
-    	// });
+		// std::atexit([]()
+		// {
+		// 	for (auto& history_element : history)
+		// 	{
+		// 		gmb_c::cpu_dump(&history_element);
+		// 	}
+		// });
 	}
 
 	void stop()
@@ -149,8 +149,8 @@ namespace app
 				uint32_t raw_pixel = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y);
 				// lcd_pixels.get()[x + (y * 160)] = raw_pixel;
 
-				const static float saturation = 0.85f;
-				const static float gamma = 1.5f;
+				const static float saturation = 0.95f;
+				const static float gamma = 1.6f;
 
 				uint8_t a = 0xFF;
 				uint8_t r = (raw_pixel >> 16) & 0xFF;
