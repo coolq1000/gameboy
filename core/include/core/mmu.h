@@ -63,7 +63,7 @@
 #define MMAP_HRAM 0xFF80
 #define MMAP_IE 0xFFFF
 
-typedef struct
+typedef struct mmu_t
 {
 	rom_t* rom;
     apu_t apu;

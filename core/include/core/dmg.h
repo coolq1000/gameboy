@@ -6,7 +6,7 @@
 #include "mmu.h"
 #include "ppu.h"
 
-typedef struct
+typedef struct dmg_t
 {
 	cpu_t cpu;
 	mmu_t mmu;

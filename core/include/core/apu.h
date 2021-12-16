@@ -4,9 +4,9 @@
 
 #include "util.h"
 
-typedef struct
+typedef struct channel_t
 {
-	i16 (*sample_callback)(u8 seek);
+	i16 (*sample_callback)(u32 seek, usize sample_rate);
 	bool enabled;
 } channel_t;
 
@@ -21,6 +21,9 @@ typedef struct
 void apu_create(apu_t* apu);
 void apu_destroy(apu_t* apu);
 
-i16 sine_wave(u8 seek);
+i16 sine_wave(u32 seek, usize sample_rate);
+i16 sawtooth_wave(u32 seek, usize sample_rate);
+i16 triangle_wave(u32 seek, usize sample_rate);
+i16 square_wave(u32 seek, usize sample_rate);
 
 #endif

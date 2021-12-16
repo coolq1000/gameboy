@@ -21,7 +21,7 @@
 
 #define MAX_SPRITES 10
 
-typedef enum
+typedef enum ppu_mode_t
 {
 	MODE_H_BLANK,
 	MODE_V_BLANK,
@@ -29,7 +29,7 @@ typedef enum
 	MODE_LCD_TRANSFER
 } ppu_mode_t;
 
-typedef struct
+typedef struct ppu_t
 {
 	ppu_mode_t mode;
 	u32 cycles;

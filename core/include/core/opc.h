@@ -7,7 +7,7 @@
 struct cpu;
 typedef struct cpu cpu_t;
 
-typedef struct
+typedef struct opc_t
 {
 	char* disasm;
 	usize length;

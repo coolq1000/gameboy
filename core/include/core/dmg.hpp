@@ -9,6 +9,7 @@ namespace gmb_c
 {
 	extern "C"
 	{
+        #include "apu.h"
 		#include "cpu.h"
 		#include "dmg.h"
 		#include "mmu.h"
@@ -20,71 +21,35 @@ namespace gmb_c
 
 namespace gmb
 {
-	// class rom_t
+    class apu
+    {
+        gmb_c::apu_t core_apu;
+
+    public:
+
+        inline apu()
+        {
+            gmb_c::apu_create(&core_apu);
+        }
+
+        inline ~apu()
+        {
+            gmb_c::apu_destroy(&core_apu);
+        }
+
+        inline i16 emit(u32 seek, usize sample_rate)
+        {
+            return core_apu.ch1.sample_callback(seek, sample_rate);
+        }
+    };
+
+	// class cpu;
+
+	// class dmg
 	// {
-	// public:
-
-	// 	gmb_c::rom_t obj;
-
-	// 	inline rom_t(const std::string&& path)
-	// 	{
-	// 		gmb_c::rom_create(&obj, path.c_str());
-	// 	}
-
-	// 	inline ~rom_t()
-	// 	{
-	// 		gmb_c::rom_destroy(&obj);
-	// 	}
-	// };
-
-	// class dmg_t
-	// {
-	// public:
-
-	// 	gmb_c::dmg_t obj;
-	// 	gmb_c::cpu_t& cpu;
-	// 	gmb_c::mmu_t& mmu;
-	// 	gmb_c::ppu_t& ppu;
-
-	// 	inline dmg_t(rom_t&& cart)
-	// 		:
-	// 		cpu(obj.cpu),
-	// 		mmu(obj.mmu),
-	// 		ppu(obj.ppu),
-	// 	{
-	// 		gmb_c::dmg_create(&obj, &cart.obj);
-	// 	}
-
-	// 	inline ~dmg_t()
-	// 	{
-	// 		gmb_c::dmg_destroy(&obj);
-	// 	}
-
-	// 	template<typename T>
-	// 	inline T peek(u16 address)
-	// 	{
-	// 		T data{};
-	// 		for (size_t i = 0; i < sizeof(T); i++)
-	// 		{
-	// 			*(reinterpret_cast<u8*>(&data) + i) = gmb_c::mmu_peek8(&obj.mmu, address + i);
-	// 		}
-
-	// 		return data;
-	// 	}
-
-	// 	template<typename T>
-	// 	inline void poke(u16 address, T value)
-	// 	{
-	// 		for (size_t i = 0; i < sizeof(T); i++)
-	// 		{
-	// 			gmb_c::mmu_poke8(&obj.mmu, address + i, *(reinterpret_cast<u8*>(&value) + i));
-	// 		}
-	// 	}
-
-	// 	inline void cycle()
-	// 	{
-	// 		gmb_c::dmg_cycle(&obj);
-	// 	}
+	// 	cpu processor;
+	// 	mmu memory;
+	// 	ppu graphics;
 	// };
 }
 

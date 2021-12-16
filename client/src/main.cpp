@@ -7,7 +7,7 @@
 #include <sstream>
 #include <core/dmg.hpp>
 #include <SFML/Graphics.hpp>
-#include <SFML/Audio.hpp>
+#include "audio.hpp"
 
 constexpr auto lcd_width = 160;
 constexpr auto lcd_height = 144;
@@ -28,10 +28,8 @@ namespace app
 	sf::Text text;
 	std::unique_ptr<uint32_t> lcd_pixels;
 
-	sf::SoundBuffer sound_buffer;
-	sf::Sound sound;
-
-	std::vector<sf::Int16> samples;
+    gmb::apu apu;
+    audio_stream as(apu);
 
 	gmb_c::dmg_t gameboy;
 	gmb_c::rom_t rom;
@@ -55,15 +53,7 @@ namespace app
 
 		window.setFramerateLimit(60);
 
-		sound.setBuffer(sound_buffer);
-		for (size_t i = 0; i < 44100; i++)
-		{
-			samples.emplace_back(gameboy.mmu.apu.ch1.sample_callback(i));
-		}
-
-		sound_buffer.loadFromSamples(&samples[0], samples.size(), 1, 44100);
-		sound.setLoop(true);
-		sound.play();
+        as.play();
 
 		gameboy.ppu.v_blank_callback = draw;
 	}

@@ -8,7 +8,7 @@
 #define ROM_MANUFACTURER_LENGTH 4
 #define ROM_LICENSE_LENGTH 2
 
-typedef struct
+typedef struct rom_t
 {
 	/* header data */
 	struct

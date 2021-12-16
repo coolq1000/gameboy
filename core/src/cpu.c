@@ -1788,7 +1788,6 @@ void cpu_execute_cb(cpu_t* cpu, mmu_t* mmu, u8 opcode)
 		cpu->registers.flag_z = IS_ZERO(cpu->registers.b);
 		cpu->registers.flag_n = false;
 		cpu->registers.flag_h = false;
-		// cpu_fault(cpu, mmu, opc, "unimplemented cb opcode");
 		break;
 	case 0x2F: /* sra a */
 		cpu->registers.flag_c = cpu->registers.a & 0x1;
