@@ -5,8 +5,12 @@
 # sublime
 *.sublime-workspace
 
+# intellij
+.idea/
+
 # build files
-build/
+build-debug/
+build-release/
 
 # roms
 roms/
