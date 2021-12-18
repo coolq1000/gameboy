@@ -4,6 +4,7 @@ project(core)
 
 set(SOURCE
 	src/apu.c include/core/apu.h
+	src/bus.c include/core/bus.h
 	src/cpu.c include/core/cpu.h
 	src/dmg.c include/core/dmg.h
 	src/mmu.c include/core/mmu.h

@@ -3,14 +3,15 @@
 #define DMG_H
 
 #include "cpu.h"
-#include "mmu.h"
-#include "ppu.h"
+#include "bus.h"
 
-typedef struct dmg_t
+typedef struct
 {
+    apu_t apu;
 	cpu_t cpu;
 	mmu_t mmu;
 	ppu_t ppu;
+    bus_t bus;
 } dmg_t;
 
 void dmg_create(dmg_t* dmg, rom_t* rom, bool is_cgb);

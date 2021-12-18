@@ -3,7 +3,6 @@
 #define PPU_H
 
 #include "mmu.h"
-#include "cpu.h"
 #include "util.h"
 
 #define CYCLES_ELAPSED(ppu, num_cycles) (ppu->cycles >= num_cycles)
@@ -21,7 +20,7 @@
 
 #define MAX_SPRITES 10
 
-typedef enum ppu_mode_t
+typedef enum
 {
 	MODE_H_BLANK,
 	MODE_V_BLANK,
@@ -29,13 +28,17 @@ typedef enum ppu_mode_t
 	MODE_LCD_TRANSFER
 } ppu_mode_t;
 
-typedef struct ppu_t
+typedef struct
 {
 	ppu_mode_t mode;
 	u32 cycles;
 	u8 line;
+    struct
+    {
+        bool v_blank;
+        bool lcd_stat;
+    } interrupt;
 	u32 lcd[LCD_WIDTH * LCD_HEIGHT];
-	void (*v_blank_callback)();
 	bool is_cgb;
 } ppu_t;
 
@@ -45,7 +48,7 @@ void ppu_create(ppu_t* ppu, bool is_cgb);
 void ppu_destroy(ppu_t* ppu);
 
 void ppu_update_ly(ppu_t* ppu, mmu_t* mmu);
-void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, usize cycles);
+void ppu_cycle(ppu_t* ppu, mmu_t* mmu, usize cycles);
 
 void ppu_set_pixel(ppu_t* ppu, usize x, usize y, u32 value);
 u32 ppu_get_pixel(ppu_t* ppu, usize x, usize y);

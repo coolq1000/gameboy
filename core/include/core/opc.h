@@ -4,10 +4,7 @@
 
 #include "util.h"
 
-struct cpu;
-typedef struct cpu cpu_t;
-
-typedef struct opc_t
+typedef struct
 {
 	char* disasm;
 	usize length;

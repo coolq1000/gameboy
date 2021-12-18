@@ -4,7 +4,7 @@
 
 #include "util.h"
 
-typedef struct channel_t
+typedef struct
 {
 	i16 (*sample_callback)(u32 seek, usize sample_rate);
 	bool enabled;

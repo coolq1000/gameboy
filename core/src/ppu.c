@@ -15,7 +15,6 @@ void ppu_create(ppu_t* ppu, bool is_cgb)
 	ppu->mode = MODE_OAM;
 	ppu->cycles = 0;
 	ppu->line = 0; // todo: check this
-	ppu->v_blank_callback = NULL;
 	ppu->is_cgb = is_cgb;
 
 	for (usize i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++)
@@ -33,16 +32,13 @@ void ppu_update_ly(ppu_t* ppu, mmu_t* mmu)
 	mmu_poke8(mmu, MMAP_IO_LY, ppu->line);
 }
 
-void ppu_compare_ly_lyc(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu)
+void ppu_compare_ly_lyc(ppu_t* ppu, mmu_t* mmu)
 {
 	if (mmu_peek8(mmu, MMAP_IO_LY) == mmu_peek8(mmu, MMAP_IO_LYC))
 	{
 		mmu_poke8(mmu, MMAP_IO_STAT, mmu_peek8(mmu, MMAP_IO_STAT) | 0x4);
 
-		if (cpu->interrupt.master)
-		{
-			cpu_request(cpu, mmu, INT_LCD_STAT_INDEX);
-		}
+		ppu->interrupt.lcd_stat = true;
 	}
 	else
 	{
@@ -50,22 +46,21 @@ void ppu_compare_ly_lyc(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu)
 	}
 }
 
-void ppu_set_stat_mode(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu)
+void ppu_set_stat_mode(ppu_t* ppu, mmu_t* mmu)
 {
 	u8 mask = (1 << (3 + ppu->mode));
 
-	if (cpu->interrupt.master)
-	{
-		if (mmu_peek8(mmu, MMAP_IO_STAT) & mask)
-		{
-			cpu_request(cpu, mmu, INT_LCD_STAT_INDEX);
-		}
-	}
+    if (mmu_peek8(mmu, MMAP_IO_STAT) & mask)
+    {
+        ppu->interrupt.lcd_stat;
+    }
 }
 
-void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, usize cycles)
+void ppu_cycle(ppu_t* ppu, mmu_t* mmu, usize cycles)
 {
 	ppu->cycles += cycles / 4;
+    ppu->interrupt.v_blank = false;
+    ppu->interrupt.lcd_stat = false;
 
 	switch (ppu->mode)
 	{
@@ -73,12 +68,11 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, usize cycles)
 		if (CYCLES_ELAPSED(ppu, CYCLES_H_BLANK))
 		{
 			ppu_update_ly(ppu, mmu);
-			ppu_compare_ly_lyc(ppu, mmu, cpu);
+			ppu_compare_ly_lyc(ppu, mmu);
 
 			if (ppu->line == SCANLINE_V_BLANK)
 			{
-				cpu_request(cpu, mmu, INT_V_BLANK_INDEX);
-				if (ppu->v_blank_callback) ppu->v_blank_callback();
+				ppu->interrupt.v_blank = true;
 				ppu->mode = MODE_V_BLANK;
 			}
 			else
@@ -86,7 +80,7 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, usize cycles)
 				ppu->mode = MODE_OAM;
 			}
 
-			ppu_set_stat_mode(ppu, mmu, cpu);
+			ppu_set_stat_mode(ppu, mmu);
 			ppu->cycles -= CYCLES_H_BLANK;
 		}
 		break;
@@ -106,7 +100,7 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, usize cycles)
 			/* hdma transfer */
 			if (mmu->hdma.hblank && mmu->hdma.length > 0) mmu->hdma.to_copy = 0x10;
 
-			ppu_set_stat_mode(ppu, mmu, cpu);
+			ppu_set_stat_mode(ppu, mmu);
 			ppu->cycles -= CYCLES_LCD_TRANSFER;
 		}
 		break;
@@ -114,12 +108,12 @@ void ppu_cycle(ppu_t* ppu, mmu_t* mmu, cpu_t* cpu, usize cycles)
 		if (CYCLES_ELAPSED(ppu, CYCLES_LINE))
 		{
 			ppu_update_ly(ppu, mmu);
-			ppu_compare_ly_lyc(ppu, mmu, cpu);
+			ppu_compare_ly_lyc(ppu, mmu);
 
 			if (ppu->line == 0)
 			{
 				ppu->mode = MODE_OAM;
-				ppu_set_stat_mode(ppu, mmu, cpu);
+				ppu_set_stat_mode(ppu, mmu);
 			}
 
 			ppu->cycles -= CYCLES_LINE;

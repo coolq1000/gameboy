@@ -1,7 +1,5 @@
 #include "core/opc.h"
 
-#include "core/cpu.h"
-
 opc_t opc_opcodes[256] = {
 	/* 0x00 */ { "nop", 1, 4 },
 	/* 0x01 */ { "ld bc, d16", 3, 12 },

@@ -54,8 +54,6 @@ namespace app
 		window.setFramerateLimit(60);
 
         as.play();
-
-		gameboy.ppu.v_blank_callback = draw;
 	}
 
 	void stop()
@@ -67,9 +65,14 @@ namespace app
 	void run()
 	{
 		bool debugging = false;
+        usize i = 0;
+
 		while (window.isOpen())
 		{
 			gmb_c::dmg_cycle(&gameboy);
+            if ((gameboy.cpu.interrupt.master && gameboy.ppu.interrupt.v_blank) || i % 1000000 == 0) draw();
+
+            i++;
 		}
 	}
 
