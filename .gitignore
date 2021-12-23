@@ -8,6 +8,9 @@
 # intellij
 .idea/
 
+# vscode
+.vscode/
+
 # build files
 build-debug/
 build-release/
