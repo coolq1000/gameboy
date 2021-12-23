@@ -1,6 +1,3 @@
 [submodule "client/deps/sfml"]
 	path = client/deps/sfml
 	url = https://github.com/SFML/SFML.git
-[submodule "client/deps/openal-soft"]
-	path = client/deps/openal-soft
-	url = https://github.com/kcat/openal-soft.git
