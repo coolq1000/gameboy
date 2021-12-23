@@ -11,25 +11,25 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 	mmu->memory.cart[1] = &rom->cart_data[MMAP_ROM_01];
 
 	/* allocate memory */
-	for (size_t i = 0; i < CGB_VRAM_COUNT; i++)
-		mmu->memory.vram[i] = (uint8_t*)malloc(VRAM_SIZE);
-	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
-		mmu->memory.xram[i] = (uint8_t*)malloc(XRAM_SIZE);
-	for (size_t i = 0; i < CGB_WRAM_COUNT; i++)
-		mmu->memory.wram[i] = (uint8_t*)malloc(WRAM_SIZE);
-	mmu->memory.oam = (uint8_t*)malloc(OAM_SIZE);
-	mmu->memory.io = (uint8_t*)malloc(IO_SIZE);
-	mmu->memory.hram = (uint8_t*)malloc(HRAM_SIZE);
+	for (usize i = 0; i < CGB_VRAM_COUNT; i++)
+		mmu->memory.vram[i] = (u8*)malloc(VRAM_SIZE);
+	for (usize i = 0; i < MBC5_XRAM_COUNT; i++)
+		mmu->memory.xram[i] = (u8*)malloc(XRAM_SIZE);
+	for (usize i = 0; i < CGB_WRAM_COUNT; i++)
+		mmu->memory.wram[i] = (u8*)malloc(WRAM_SIZE);
+	mmu->memory.oam = (u8*)malloc(OAM_SIZE);
+	mmu->memory.io = (u8*)malloc(IO_SIZE);
+	mmu->memory.hram = (u8*)malloc(HRAM_SIZE);
 
 	/* for null access in memory map */
 	mmu->null_mem = 0;
 
 	/* clear out memory */
-	for (size_t i = 0; i < CGB_VRAM_COUNT; i++)
+	for (usize i = 0; i < CGB_VRAM_COUNT; i++)
 		memset(mmu->memory.vram[i], 0, VRAM_SIZE);
-	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
+	for (usize i = 0; i < MBC5_XRAM_COUNT; i++)
 		memset(mmu->memory.xram[i], 0, XRAM_SIZE);
-	for (size_t i = 0; i < CGB_WRAM_COUNT; i++)
+	for (usize i = 0; i < CGB_WRAM_COUNT; i++)
 		memset(mmu->memory.wram[i], 0, WRAM_SIZE);
 	memset(mmu->memory.oam, 0, sizeof(mmu->memory.oam));
 	memset(mmu->memory.io, 0, sizeof(mmu->memory.io));
@@ -42,7 +42,7 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 	/* load save data */
 	if (rom->save_data)
 	{
-		for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
+		for (usize i = 0; i < MBC5_XRAM_COUNT; i++)
 		{
 			if (i * XRAM_SIZE < rom->save_size)
 			{
@@ -57,11 +57,11 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 
 void mmu_destroy(mmu_t* mmu)
 {
-	for (size_t i = 0; i < CGB_VRAM_COUNT; i++)
+	for (usize i = 0; i < CGB_VRAM_COUNT; i++)
 		free(mmu->memory.vram[i]);
-	for (size_t i = 0; i < MBC5_XRAM_COUNT; i++)
+	for (usize i = 0; i < MBC5_XRAM_COUNT; i++)
 		free(mmu->memory.xram[i]);
-	for (size_t i = 0; i < CGB_WRAM_COUNT; i++)
+	for (usize i = 0; i < CGB_WRAM_COUNT; i++)
 		free(mmu->memory.wram[i]);
 	free(mmu->memory.oam);
 	free(mmu->memory.io);
@@ -70,7 +70,7 @@ void mmu_destroy(mmu_t* mmu)
 	apu_destroy(&mmu->apu);
 }
 
-uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
+u8* mmu_map(mmu_t* mmu, u16 address)
 {
 	switch (address & 0xF000)
 	{
@@ -110,43 +110,50 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 			switch (address)
 			{
 			case MMAP_IO_JOYP:
-				uint8_t original = mmu->io.joyp & 0x30;
-				uint8_t input = 0b11000000;
+            {
+                u8 original = mmu->io.joyp & 0x30;
+                u8 input = 0b11000000;
 
-				/* unpack buttons, so we can modify them */
-				uint8_t right = mmu->buttons.right;
-				uint8_t left = mmu->buttons.left;
-				uint8_t up = mmu->buttons.up;
-				uint8_t down = mmu->buttons.down;
-				uint8_t a = mmu->buttons.a;
-				uint8_t b = mmu->buttons.b;
-				uint8_t select = mmu->buttons.select;
-				uint8_t start = mmu->buttons.start;
+                /* unpack buttons, so we can modify them */
+                u8 right = mmu->buttons.right;
+                u8 left = mmu->buttons.left;
+                u8 up = mmu->buttons.up;
+                u8 down = mmu->buttons.down;
+                u8 a = mmu->buttons.a;
+                u8 b = mmu->buttons.b;
+                u8 select = mmu->buttons.select;
+                u8 start = mmu->buttons.start;
 
-				/* you couldn't actually press two opposite directions at once */
-				if (right && left) { right = 0; left = 0; }
-				if (up && down) { up = 0; down = 0; }
+                /* you couldn't actually press two opposite directions at once */
+                if (right && left)
+                {
+                    right = 0;
+                    left = 0;
+                }
+                if (up && down)
+                {
+                    up = 0;
+                    down = 0;
+                }
 
-				if (!(mmu->io.joyp & 0x10)) /* directions */
-				{
-					input |= (right		? 0 : 0b00000001);
-					input |= (left		? 0 : 0b00000010);
-					input |= (up		? 0 : 0b00000100);
-					input |= (down		? 0 : 0b00001000);
-				}
-				else if (!(mmu->io.joyp & 0x20)) /* actions */
-				{
-					input |= (a			? 0 : 0b00000001);
-					input |= (b			? 0 : 0b00000010);
-					input |= (select	? 0 : 0b00000100);
-					input |= (start		? 0 : 0b00001000);
-				}
-				else
-				{
-					input |= 0b00001111;
-				}
-				mmu->io.joyp = input | original;
-				return &mmu->io.joyp;
+                if (!(mmu->io.joyp & 0x10)) /* directions */
+                {
+                    input |= (right ? 0 : 0b00000001);
+                    input |= (left ? 0 : 0b00000010);
+                    input |= (up ? 0 : 0b00000100);
+                    input |= (down ? 0 : 0b00001000);
+                } else if (!(mmu->io.joyp & 0x20)) /* actions */
+                {
+                    input |= (a ? 0 : 0b00000001);
+                    input |= (b ? 0 : 0b00000010);
+                    input |= (select ? 0 : 0b00000100);
+                    input |= (start ? 0 : 0b00001000);
+                } else {
+                    input |= 0b00001111;
+                }
+                mmu->io.joyp = input | original;
+                return &mmu->io.joyp;
+            }
 			case MMAP_IO_NR52:
 				mmu->null_mem = 0xFA;
 				return &mmu->null_mem;
@@ -229,7 +236,7 @@ uint8_t* mmu_map(mmu_t* mmu, uint16_t address)
 	}
 }
 
-uint8_t mmu_peek8(mmu_t* mmu, uint16_t address)
+u8 mmu_peek8(mmu_t* mmu, u16 address)
 {
 	switch (address)
 	{
@@ -241,12 +248,12 @@ uint8_t mmu_peek8(mmu_t* mmu, uint16_t address)
 	return *mmu_map(mmu, address);
 }
 
-uint16_t mmu_peek16(mmu_t* mmu, uint16_t address)
+u16 mmu_peek16(mmu_t* mmu, u16 address)
 {
 	return mmu_peek8(mmu, address + 1) << 8 | mmu_peek8(mmu, address);
 }
 
-void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
+void mmu_poke8(mmu_t* mmu, u16 address, u8 value)
 {
 	if (address >= 0x8000) // disallow writing to rom
 	{
@@ -254,12 +261,12 @@ void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 		{
 		case MMAP_IO_JOYP:
 		{
-			uint8_t input = mmu->io.joyp;
+			u8 input = mmu->io.joyp;
 			mmu->io.joyp = (value & 0x30) | (input & 0xCF); // only permit writing to bits 4 & 5
 			return;
 		}
 		case MMAP_IO_DMA:
-			for (uint16_t copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
+			for (u16 copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
 			{
 				mmu_poke8(mmu, 0xFE00 + (copy_addr & 0xFF), mmu_peek8(mmu, copy_addr));
 			}
@@ -345,7 +352,7 @@ void mmu_poke8(mmu_t* mmu, uint16_t address, uint8_t value)
 	}
 }
 
-void mmu_poke16(mmu_t* mmu, uint16_t address, uint16_t value)
+void mmu_poke16(mmu_t* mmu, u16 address, u16 value)
 {
 	mmu_poke8(mmu, address, value & 0xFF);
 	mmu_poke8(mmu, address + 1, (value >> 8) & 0xFF);
