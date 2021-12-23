@@ -13,8 +13,8 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "../../res/roms/ladx.gbc";
-const char* save_path = "../../res/roms/ladx.sav";
+const char* cart_path = "../../res/roms/zs.gbc";
+const char* save_path = "../../res/roms/zs.sav";
 // const char* save_path = "";
 
 namespace app
@@ -49,7 +49,7 @@ namespace app
 
 		lcd_pixels = std::unique_ptr<uint32_t>(new uint32_t[lcd_width * lcd_height]());
 
-//		window.setFramerateLimit(60);
+		window.setFramerateLimit(60);
 
         as.play();
 	}

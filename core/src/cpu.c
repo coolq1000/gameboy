@@ -344,36 +344,36 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.h = imm8;
 		break;
 	case 0x27: /* daa */
-		tmp8 = cpu->registers.a;
+		tmp16 = cpu->registers.a;
 
 		if (cpu->registers.flag_n)
 		{
 			if (cpu->registers.flag_h)
 			{
-				tmp8 = (tmp8 - 0x06) & 0xFF;
+                tmp16 = (tmp16 - 0x06) & 0xFF;
 			}
 			if (cpu->registers.flag_c)
 			{
-				tmp8 -= 0x60;
+                tmp16 -= 0x60;
 			}
 		}
 		else
 		{
-			if (cpu->registers.flag_h || (tmp8 & 0x0F) > 0x9)
+			if (cpu->registers.flag_h || (tmp16 & 0x0F) > 0x9)
 			{
-				tmp8 += 0x06;
+                tmp16 += 0x06;
 			}
-			if (cpu->registers.flag_c || tmp8 > 0x9F)
+			if (cpu->registers.flag_c || tmp16 > 0x9F)
 			{
-				tmp8 += 0x60;
+                tmp16 += 0x60;
 			}
 		}
 
-		cpu->registers.a = tmp8;
+		cpu->registers.a = tmp16;
 
 		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
 		cpu->registers.flag_h = false;
-		cpu->registers.flag_c = tmp8 >= 0x100;
+		cpu->registers.flag_c = tmp16 >= 0x100;
 		break;
 	case 0x28: /* jr z, r8 */
 		if (cpu->registers.flag_z)

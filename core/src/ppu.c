@@ -17,7 +17,6 @@ void ppu_create(ppu_t* ppu, bool is_cgb)
 	ppu->mode = MODE_OAM;
 	ppu->cycles = 0;
 	ppu->line = 0; // todo: check this
-    ppu->window_line = 0;
 	ppu->is_cgb = is_cgb;
 
 	for (usize i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++)
@@ -117,7 +116,6 @@ void ppu_cycle(ppu_t* ppu, bus_t* bus, usize cycles)
 			{
 				ppu->mode = MODE_OAM;
 				ppu_set_stat_mode(ppu, bus);
-                ppu->window_line = -1; // -1 becomes 0xFF
 			}
 
 			ppu->cycles -= CYCLES_LINE;
@@ -201,7 +199,7 @@ u32 ppu_render_background(ppu_t* ppu, bus_t* bus, u8 x, u8 y, u8 is_window)
 	u8 tile_x = x / 8;
 	u8 tile_y = y / 8;
 
-	u8 cgb_attributes = bus->mmu->memory.vram[1][map_area + (tile_x + tile_y * 32)];
+	u8 cgb_attributes = ppu->is_cgb ? bus->mmu->memory.vram[1][map_area + (tile_x + tile_y * 32)] : 0;
 
 	u8 tile_pixel_x = x % 8;
 	u8 tile_pixel_y = y % 8;
@@ -307,8 +305,7 @@ void ppu_render_line(ppu_t* ppu, bus_t* bus)
 		{
 			if (window_enable && (ppu->line >= window_y && (int)x >= window_x))
 			{
-                if (x == window_x) ppu->window_line++;
-                ppu_set_pixel(ppu, x, ppu->line, ppu_render_background(ppu, bus, x - window_x, ppu->window_line, true)); // todo check LCDC.3 only if not a window
+                ppu_set_pixel(ppu, x, ppu->line, ppu_render_background(ppu, bus, x - window_x, ppu->line - window_y, true)); // todo check LCDC.3 only if not a window
 			}
 			else if (background_enable) // render background
 			{

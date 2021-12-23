@@ -33,7 +33,6 @@ typedef struct ppu
 	ppu_mode_t mode;
 	u32 cycles;
 	u8 line;
-    u8 window_line;
     struct
     {
         bool v_blank;
