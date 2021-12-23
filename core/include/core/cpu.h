@@ -22,7 +22,7 @@
 #define INT_SERIAL_INDEX	(1 << 3)
 #define INT_JOYPAD_INDEX	(1 << 4)
 
-typedef struct
+typedef struct cpu
 {
 	struct
 	{

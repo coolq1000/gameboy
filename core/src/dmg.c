@@ -23,5 +23,5 @@ void dmg_destroy(dmg_t* dmg)
 void dmg_cycle(dmg_t* dmg)
 {
 	cpu_cycle(&dmg->cpu, &dmg->bus);
-	ppu_cycle(&dmg->ppu, &dmg->mmu, dmg->cpu.clock.cycles);
+	ppu_cycle(&dmg->ppu, &dmg->bus, dmg->cpu.clock.cycles);
 }

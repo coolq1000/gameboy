@@ -2,17 +2,13 @@
 #ifndef BUS_H
 #define BUS_H
 
-
-#include "apu.h"
-#include "mmu.h"
-#include "ppu.h"
 #include "util.h"
 
-//typedef struct apu apu_t;
-//typedef struct mmu mmu_t;
-//typedef struct ppu ppu_t;
+typedef struct apu apu_t;
+typedef struct mmu mmu_t;
+typedef struct ppu ppu_t;
 
-typedef struct
+typedef struct bus
 {
     apu_t* apu;
     mmu_t* mmu;

@@ -2,10 +2,13 @@
 #ifndef DMG_H
 #define DMG_H
 
+#include "apu.h"
 #include "cpu.h"
+#include "mmu.h"
+#include "ppu.h"
 #include "bus.h"
 
-typedef struct
+typedef struct dmg
 {
     apu_t apu;
 	cpu_t cpu;

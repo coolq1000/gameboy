@@ -2,6 +2,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "core/apu.h"
+#include "core/mmu.h"
+#include "core/ppu.h"
 
 void cpu_create(cpu_t* cpu, bool is_cgb)
 {
@@ -2676,8 +2679,8 @@ void cpu_cycle(cpu_t* cpu, bus_t* bus)
     /* register ppu interrupts */
     if (cpu->interrupt.master)
     {
-        if (bus->ppu->interrupt.v_blank) cpu_interrupt(cpu, bus, INT_V_BLANK);
-        if (bus->ppu->interrupt.lcd_stat) cpu_interrupt(cpu, bus, INT_LCD_STAT);
+        if (bus->ppu->interrupt.v_blank) cpu_request(cpu, bus, INT_V_BLANK_INDEX);
+        if (bus->ppu->interrupt.lcd_stat) cpu_request(cpu, bus, INT_LCD_STAT_INDEX);
     }
 
 	/* execute interrupts */

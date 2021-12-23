@@ -4,7 +4,7 @@
 
 #include "util.h"
 
-typedef struct
+typedef struct opc
 {
 	char* disasm;
 	usize length;

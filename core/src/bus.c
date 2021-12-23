@@ -1,5 +1,9 @@
 #include "core/bus.h"
 
+#include "core/apu.h"
+#include "core/mmu.h"
+#include "core/ppu.h"
+
 void bus_init(bus_t* bus, apu_t* apu, mmu_t* mmu, ppu_t* ppu)
 {
     bus->apu = apu;

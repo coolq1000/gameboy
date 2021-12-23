@@ -4,13 +4,13 @@
 
 #include "util.h"
 
-typedef struct
+typedef struct channel
 {
 	i16 (*sample_callback)(u32 seek, usize sample_rate);
 	bool enabled;
 } channel_t;
 
-typedef struct
+typedef struct apu
 {
 	channel_t ch1; /* tone & sweep */
 	channel_t ch2; /* tone */
