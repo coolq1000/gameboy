@@ -233,16 +233,16 @@ void ppu_render_sprites(ppu_t* ppu, bus_t* bus, usize x, usize y)
 	{
 		u16 sprite_address = i_sprite * 4;
 
-		i16 sprite_x = bus->mmu->memory.oam[sprite_address + 1] - 8;
-		i16 sprite_y = bus->mmu->memory.oam[sprite_address + 0] - 16;
-		u8 sprite_tile_id = bus->mmu->memory.oam[sprite_address + 2] & (sprite_height == 8 ? 0xFF : 0xFE);
-		u8 sprite_tile_attributes = bus->mmu->memory.oam[sprite_address + 3];
-
-		u8 palette = sprite_tile_attributes & 0x10 ? bus->mmu->io.obp1 : bus->mmu->io.obp0;
-
 		/* check sprite active */
 		if (bus->mmu->memory.oam[sprite_address]) // checks y coordinate != 0
 		{
+            i16 sprite_x = bus->mmu->memory.oam[sprite_address + 1] - 8;
+            i16 sprite_y = bus->mmu->memory.oam[sprite_address + 0] - 16;
+            u8 sprite_tile_id = bus->mmu->memory.oam[sprite_address + 2] & (sprite_height == 8 ? 0xFF : 0xFE);
+            u8 sprite_tile_attributes = bus->mmu->memory.oam[sprite_address + 3];
+
+            u8 palette = sprite_tile_attributes & 0x10 ? bus->mmu->io.obp1 : bus->mmu->io.obp0;
+
 			/* check sprite bounds */
 			if ((i16)y >= sprite_y && (i16)y < sprite_y + sprite_height)
 			{
