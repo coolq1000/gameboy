@@ -33,8 +33,8 @@ typedef struct rom
 	usize save_size;
 } rom_t;
 
-void rom_create(rom_t* rom, const char* cart_path, const char* save_path);
-void rom_destroy(rom_t* rom);
+void rom_init(rom_t* rom, const char* cart_path, const char* save_path);
+void rom_free(rom_t* rom);
 
 void rom_load_cart(rom_t* rom, const char* cart_path);
 void rom_load_save(rom_t* rom, const char* save_path);

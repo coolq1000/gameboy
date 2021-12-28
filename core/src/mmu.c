@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void mmu_create(mmu_t* mmu, rom_t* rom)
+void mmu_init(mmu_t* mmu, rom_t* rom)
 {
 	/* point cartridge memory to rom data */
 	mmu->memory.cart[0] = &rom->cart_data[MMAP_ROM_00];
@@ -50,12 +50,9 @@ void mmu_create(mmu_t* mmu, rom_t* rom)
 			}
 		}
 	}
-
-	/* setup apu */
-	apu_create(&mmu->apu);
 }
 
-void mmu_destroy(mmu_t* mmu)
+void mmu_free(mmu_t* mmu)
 {
 	for (usize i = 0; i < CGB_VRAM_COUNT; i++)
 		free(mmu->memory.vram[i]);
@@ -66,8 +63,6 @@ void mmu_destroy(mmu_t* mmu)
 	free(mmu->memory.oam);
 	free(mmu->memory.io);
 	free(mmu->memory.hram);
-
-	apu_destroy(&mmu->apu);
 }
 
 u8* mmu_map(mmu_t* mmu, u16 address)
@@ -231,12 +226,12 @@ u8* mmu_map(mmu_t* mmu, u16 address)
 			}
 		}
 	default:
-		printf("[!] unable to map address `0x%04X` to mmu", address);
+		printf("[!] unable to map mmu address `0x%04X`", address);
 		exit(EXIT_FAILURE);
 	}
 }
 
-u8 mmu_peek8(mmu_t* mmu, u16 address)
+u8 mmu_peek(mmu_t* mmu, u16 address)
 {
 	switch (address)
 	{
@@ -248,12 +243,7 @@ u8 mmu_peek8(mmu_t* mmu, u16 address)
 	return *mmu_map(mmu, address);
 }
 
-u16 mmu_peek16(mmu_t* mmu, u16 address)
-{
-	return mmu_peek8(mmu, address + 1) << 8 | mmu_peek8(mmu, address);
-}
-
-void mmu_poke8(mmu_t* mmu, u16 address, u8 value)
+void mmu_poke(mmu_t* mmu, u16 address, u8 value)
 {
 	if (address >= 0x8000) // disallow writing to rom
 	{
@@ -268,7 +258,7 @@ void mmu_poke8(mmu_t* mmu, u16 address, u8 value)
 		case MMAP_IO_DMA:
 			for (u16 copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
 			{
-				mmu_poke8(mmu, 0xFE00 + (copy_addr & 0xFF), mmu_peek8(mmu, copy_addr));
+				mmu_poke(mmu, 0xFE00 + (copy_addr & 0xFF), mmu_peek(mmu, copy_addr));
 			}
 			return;
 		case MMAP_IO_HDMA1:
@@ -341,6 +331,8 @@ void mmu_poke8(mmu_t* mmu, u16 address, u8 value)
 				mmu->memory.cart[1] = mmu->memory.cart[0] + (0x4000 * (value ? value : 1)); // todo: check this should go up to 1
 			}
 			break;
+        case 0x3000:
+            break; // todo: fixme
 		case 0x4000:
 			break; // todo: fixme!!!
 		case 0x6000:
@@ -352,18 +344,12 @@ void mmu_poke8(mmu_t* mmu, u16 address, u8 value)
 	}
 }
 
-void mmu_poke16(mmu_t* mmu, u16 address, u16 value)
-{
-	mmu_poke8(mmu, address, value & 0xFF);
-	mmu_poke8(mmu, address + 1, (value >> 8) & 0xFF);
-}
-
 void mmu_hdma_copy_block(mmu_t* mmu)
 {
 	// fixme: actually consider timing rather than copying it all at once
 	for (; mmu->hdma.to_copy > 0; mmu->hdma.to_copy--)
 	{
-		mmu_poke8(mmu, mmu->hdma.destination, mmu_peek8(mmu, mmu->hdma.source));
+		mmu_poke(mmu, mmu->hdma.destination, mmu_peek(mmu, mmu->hdma.source));
 		mmu->hdma.source++;
 		mmu->hdma.destination++;
 		mmu->hdma.length--;

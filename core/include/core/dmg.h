@@ -17,8 +17,8 @@ typedef struct dmg
     bus_t bus;
 } dmg_t;
 
-void dmg_create(dmg_t* dmg, rom_t* rom, bool is_cgb);
-void dmg_destroy(dmg_t* dmg);
+void dmg_init(dmg_t* dmg, rom_t* rom, bool is_cgb);
+void dmg_free(dmg_t* dmg);
 
 void dmg_cycle(dmg_t* dmg);
 

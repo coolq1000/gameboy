@@ -36,8 +36,8 @@ namespace app
 
 	void start()
 	{
-		gmb_c::rom_create(&rom, cart_path, save_path);
-		gmb_c::dmg_create(&gameboy, &rom, true);
+		gmb_c::rom_init(&rom, cart_path, save_path);
+		gmb_c::dmg_init(&gameboy, &rom, true);
 
 		window.create(sf::VideoMode(window_width, window_height), "gameboy");
 		bool created = lcd.create(lcd_width, lcd_height);
@@ -57,18 +57,31 @@ namespace app
 	void stop()
 	{
 		gmb_c::rom_dump_save(&rom, &gameboy.mmu, save_path);
-		gmb_c::rom_destroy(&rom);
+		gmb_c::rom_free(&rom);
 	}
+
+    void set_turbo(bool turbo)
+    {
+        if (turbo)
+        {
+            gameboy.ppu.frame_step = 10;
+            window.setFramerateLimit(0);
+        }
+        else
+        {
+            gameboy.ppu.frame_step = 1;
+            window.setFramerateLimit(60);
+        }
+    }
 
 	void run()
 	{
-		bool debugging = false;
         usize i = 0;
 
 		while (window.isOpen())
 		{
 			gmb_c::dmg_cycle(&gameboy);
-            if ((gameboy.cpu.interrupt.master && gameboy.ppu.interrupt.v_blank) || i % 1000000 == 0) draw();
+            if ((gameboy.cpu.interrupt.master && gameboy.ppu.draw) || i % 1000000 == 0) draw();
 
             i++;
 		}
@@ -100,6 +113,8 @@ namespace app
 				case sf::Keyboard::Up: gameboy.mmu.buttons.up = true; break;
 				case sf::Keyboard::Left: gameboy.mmu.buttons.left = true; break;
 				case sf::Keyboard::Right: gameboy.mmu.buttons.right = true; break;
+
+                case sf::Keyboard::Space: set_turbo(true); break;
 				}
 				break;
 			case sf::Event::KeyReleased:
@@ -113,6 +128,8 @@ namespace app
 				case sf::Keyboard::Up: gameboy.mmu.buttons.up = false; break;
 				case sf::Keyboard::Left: gameboy.mmu.buttons.left = false; break;
 				case sf::Keyboard::Right: gameboy.mmu.buttons.right = false; break;
+
+                case sf::Keyboard::Space: set_turbo(false); break;
 				}
 				break;
 			}

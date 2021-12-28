@@ -1,23 +1,20 @@
 #include "core/dmg.h"
 
-void dmg_create(dmg_t* dmg, rom_t* rom, bool is_cgb)
+void dmg_init(dmg_t* dmg, rom_t* rom, bool is_cgb)
 {
     /* initialize components */
-    apu_create(&dmg->apu);
-	cpu_create(&dmg->cpu, is_cgb);
-	mmu_create(&dmg->mmu, rom);
-	ppu_create(&dmg->ppu, is_cgb);
+    apu_init(&dmg->apu);
+	cpu_init(&dmg->cpu, is_cgb);
+	mmu_init(&dmg->mmu, rom);
+	ppu_init(&dmg->ppu, is_cgb);
 
     /* map memory components onto bus */
     bus_init(&dmg->bus, &dmg->apu, &dmg->mmu, &dmg->ppu);
 }
 
-void dmg_destroy(dmg_t* dmg)
+void dmg_free(dmg_t* dmg)
 {
-
-	cpu_destroy(&dmg->cpu);
-	mmu_destroy(&dmg->mmu);
-	ppu_destroy(&dmg->ppu);
+	mmu_free(&dmg->mmu);
 }
 
 void dmg_cycle(dmg_t* dmg)

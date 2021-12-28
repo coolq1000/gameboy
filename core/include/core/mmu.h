@@ -3,7 +3,6 @@
 #define MMU_H
 
 #include "rom.h"
-#include "apu.h"
 #include "util.h"
 
 #define GET_BIT(value, index) (((value) & (1 << index)) != 0)
@@ -66,7 +65,6 @@
 typedef struct mmu
 {
 	rom_t* rom;
-    apu_t apu;
 
 	/* memory map */
     struct
@@ -140,16 +138,13 @@ typedef struct mmu
     u8 null_mem;
 } mmu_t;
 
-void mmu_create(mmu_t* mmu, rom_t* rom);
-void mmu_destroy(mmu_t* mmu);
+void mmu_init(mmu_t* mmu, rom_t* rom);
+void mmu_free(mmu_t* mmu);
 
 u8* mmu_map(mmu_t* mmu, u16 address);
 
-u8 mmu_peek8(mmu_t* mmu, u16 address);
-u16 mmu_peek16(mmu_t* mmu, u16 address);
-
-void mmu_poke8(mmu_t* mmu, u16 address, u8 value);
-void mmu_poke16(mmu_t* mmu, u16 address, u16 value);
+u8 mmu_peek(mmu_t* mmu, u16 address);
+void mmu_poke(mmu_t* mmu, u16 address, u8 value);
 
 void mmu_hdma_copy_block(mmu_t* mmu);
 

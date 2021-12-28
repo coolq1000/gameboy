@@ -9,7 +9,7 @@
 #define ROM_MANUFACTURER_OFFSET 0x13F
 #define ROM_LICENSE_OFFSET 0x144
 
-void rom_create(rom_t* rom, const char* cart_path, const char* save_path)
+void rom_init(rom_t* rom, const char* cart_path, const char* save_path)
 {
 	/* zero out data before loading */
 	rom->cart_data = NULL;
@@ -22,7 +22,7 @@ void rom_create(rom_t* rom, const char* cart_path, const char* save_path)
 	rom_load_save(rom, save_path);
 }
 
-void rom_destroy(rom_t* rom)
+void rom_free(rom_t* rom)
 {
 	if (rom->cart_data) free(rom->cart_data);
 	if (rom->save_data) free(rom->save_data);

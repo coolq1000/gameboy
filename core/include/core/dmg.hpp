@@ -29,17 +29,13 @@ namespace gmb
 
         inline apu()
         {
-            gmb_c::apu_create(&core_apu);
-        }
-
-        inline ~apu()
-        {
-            gmb_c::apu_destroy(&core_apu);
+            gmb_c::apu_init(&core_apu);
         }
 
         inline i16 emit(u32 seek, usize sample_rate)
         {
-            return core_apu.ch1.sample_callback(seek, sample_rate);
+            return 0;
+//            return core_apu.ch1.sample_callback(&core_apu, seek, sample_rate);
         }
     };
 

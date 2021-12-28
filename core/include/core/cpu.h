@@ -73,8 +73,7 @@ typedef struct cpu
 	bool halted;
 } cpu_t;
 
-void cpu_create(cpu_t* cpu, bool is_cgb);
-void cpu_destroy(cpu_t* cpu);
+void cpu_init(cpu_t* cpu, bool is_cgb);
 
 void cpu_fault(cpu_t* cpu, bus_t* bus, opc_t* opc, const char* message);
 void cpu_trace(cpu_t* cpu, opc_t* opc);

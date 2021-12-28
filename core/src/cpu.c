@@ -6,7 +6,7 @@
 #include "core/mmu.h"
 #include "core/ppu.h"
 
-void cpu_create(cpu_t* cpu, bool is_cgb)
+void cpu_init(cpu_t* cpu, bool is_cgb)
 {
 	/* setup registers */
 	cpu->registers.af = 0x01B0;
@@ -36,11 +36,6 @@ void cpu_create(cpu_t* cpu, bool is_cgb)
 	{
 		cpu->registers.a = 0x11;
 	}
-}
-
-void cpu_destroy(cpu_t* cpu)
-{
-	
 }
 
 void cpu_fault(cpu_t* cpu, bus_t* bus, opc_t* opc, const char* message)
@@ -126,8 +121,8 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 
 	/* decode opcode & immediate values */
 	opc_t* opc = &opc_opcodes[opcode];
-	u8 imm8 = bus_peek8(bus, cpu->registers.pc + 1);
-	u16 imm16 = bus_peek16(bus, cpu->registers.pc + 1);
+    u16 imm16 = bus_peek16(bus, cpu->registers.pc + 1);
+    u8 imm8 = (u8)imm16;
 
 	/* update state */
 	cpu->registers.pc += opc->length;

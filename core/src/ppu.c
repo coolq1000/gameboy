@@ -12,20 +12,38 @@ u8 ppu_palette[12] =
 	0x08, 0x18, 0x20
 };
 
-void ppu_create(ppu_t* ppu, bool is_cgb)
+void ppu_init(ppu_t* ppu, bool is_cgb)
 {
 	ppu->mode = MODE_OAM;
 	ppu->cycles = 0;
 	ppu->line = 0; // todo: check this
+    ppu->enabled = true;
 	ppu->is_cgb = is_cgb;
+    ppu->frame = 0;
+    ppu->frame_step = 1;
+    ppu->draw = false;
 
 	for (usize i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++)
 		ppu->lcd[i] = 0;
 }
 
-void ppu_destroy(ppu_t* ppu)
+void ppu_enable(ppu_t* ppu)
 {
+    if (!ppu->enabled)
+    {
+        ppu->enabled = true;
+    }
+}
 
+void ppu_disable(ppu_t* ppu)
+{
+    ppu->line = 248;
+
+    for (usize x = 0; x < LCD_WIDTH; x++)
+        for (usize y = 0; y < LCD_HEIGHT; y++)
+            ppu_set_pixel(ppu, x, y, 0xFFFFFFFF);
+
+    ppu->enabled = false;
 }
 
 void ppu_update_ly(ppu_t* ppu, bus_t* bus)
@@ -59,9 +77,11 @@ void ppu_set_stat_mode(ppu_t* ppu, bus_t* bus)
 
 void ppu_cycle(ppu_t* ppu, bus_t* bus, usize cycles)
 {
-	ppu->cycles += cycles / 4;
     ppu->interrupt.v_blank = false;
     ppu->interrupt.lcd_stat = false;
+    ppu->draw = false;
+
+    bool drawing = (ppu->frame % ppu->frame_step) == 0;
 
 	switch (ppu->mode)
 	{
@@ -74,8 +94,10 @@ void ppu_cycle(ppu_t* ppu, bus_t* bus, usize cycles)
 			if (ppu->line == SCANLINE_V_BLANK)
 			{
 				ppu->interrupt.v_blank = true;
+                ppu->draw = drawing;
 				ppu->mode = MODE_V_BLANK;
                 ppu_set_stat_mode(ppu, bus); // todo: check
+                ppu->frame++;
 			}
 			else
 			{
@@ -96,7 +118,18 @@ void ppu_cycle(ppu_t* ppu, bus_t* bus, usize cycles)
 	case MODE_LCD_TRANSFER:
 		if (CYCLES_ELAPSED(ppu, CYCLES_LCD_TRANSFER))
 		{
-			ppu_render_line(ppu, bus);
+            if (drawing)
+            {
+                u8 lcd_enable = (bus->mmu->io.lcdc & 0x80) != 0;
+
+                if (lcd_enable) ppu_enable(ppu);
+                else ppu_disable(ppu);
+
+                if (lcd_enable)
+                {
+                    ppu_render_line(ppu, bus);
+                }
+            }
 			ppu->mode = MODE_H_BLANK;
 			
 			/* hdma transfer */
@@ -124,6 +157,7 @@ void ppu_cycle(ppu_t* ppu, bus_t* bus, usize cycles)
 	}
 
     bus->mmu->io.stat = (bus->mmu->io.stat & 0xFC) | ppu->mode;
+    ppu->cycles++;
 }
 
 void ppu_set_pixel(ppu_t* ppu, usize x, usize y, u32 value)
@@ -153,8 +187,8 @@ u8 ppu_get_tile(ppu_t* ppu, bus_t* bus, u8 tile_id, usize tile_x, usize tile_y, 
 	}
 	else
 	{
-		pixel_line_1 = mmu_peek8(bus->mmu, MMAP_VRAM + (tile_addr + tile_y * 2) + 1);
-		pixel_line_2 = mmu_peek8(bus->mmu, MMAP_VRAM + (tile_addr + tile_y * 2) + 0);
+		pixel_line_1 = mmu_peek(bus->mmu, MMAP_VRAM + (tile_addr + tile_y * 2) + 1);
+		pixel_line_2 = mmu_peek(bus->mmu, MMAP_VRAM + (tile_addr + tile_y * 2) + 0);
 	}
 
 	u8 pixel_mask = 0x80 >> tile_x;
@@ -192,17 +226,17 @@ u32 ppu_apply_cgb_palette(u16 raw_color)
 	return (0xFF << 24) | (b << 16) | (g << 8) | r;
 }
 
-u32 ppu_render_background(ppu_t* ppu, bus_t* bus, u8 x, u8 y, u8 is_window)
+bg_t ppu_render_background(ppu_t* ppu, bus_t* bus, u8 x, u8 y, u8 is_window)
 {
 	u16 map_area = ((bus->mmu->io.lcdc & 0x8) && !is_window) || ((bus->mmu->io.lcdc & 0x40) && is_window) ? 0x1C00 : 0x1800;
 
 	u8 tile_x = x / 8;
 	u8 tile_y = y / 8;
 
-	u8 cgb_attributes = ppu->is_cgb ? bus->mmu->memory.vram[1][map_area + (tile_x + tile_y * 32)] : 0;
+    u8 tile_pixel_x = x % 8;
+    u8 tile_pixel_y = y % 8;
 
-	u8 tile_pixel_x = x % 8;
-	u8 tile_pixel_y = y % 8;
+	u8 cgb_attributes = ppu->is_cgb ? bus->mmu->memory.vram[1][map_area + (tile_x + tile_y * 32)] : 0;
 
 	if (cgb_attributes & 0x20) tile_pixel_x = 7 - tile_pixel_x;
 	if (cgb_attributes & 0x40) tile_pixel_y = 7 - tile_pixel_y;
@@ -212,16 +246,22 @@ u32 ppu_render_background(ppu_t* ppu, bus_t* bus, u8 x, u8 y, u8 is_window)
     u16 map_address = map_area + tile_x + tile_y * 32;
     u8 tile_id = bus->mmu->memory.vram[0][map_address];
 	u8 tile = ppu_get_tile(ppu, bus, tile_id, tile_pixel_x, tile_pixel_y, false, cgb_vbank);
-	
+
+    bg_t pixel;
+    pixel.tile = tile;
+    pixel.attributes = cgb_attributes;
+
 	if (ppu->is_cgb)
 	{
         u8 cgb_palette = cgb_attributes & 0x7;
-        return ppu_apply_cgb_palette(ppu_convert_cgb_palette(bus, bus->mmu->palette.background, cgb_palette, tile));
+        pixel.color = ppu_apply_cgb_palette(ppu_convert_cgb_palette(bus, bus->mmu->palette.background, cgb_palette, tile));
 	}
 	else
 	{
-        return ppu_apply_dmg_palette(ppu_palette, ppu_convert_dmg_palette(bus->mmu->io.bgp, tile));
+        pixel.color = ppu_apply_dmg_palette(ppu_palette, ppu_convert_dmg_palette(bus->mmu->io.bgp, tile));
 	}
+
+    return pixel;
 }
 
 void ppu_render_sprites(ppu_t* ppu, bus_t* bus, usize x, usize y)
@@ -291,7 +331,6 @@ void ppu_render_line(ppu_t* ppu, bus_t* bus)
 	u8 scroll_x = bus->mmu->io.scx;
     u8 scroll_y = bus->mmu->io.scy;
 
-	u8 lcd_enable = (bus->mmu->io.lcdc & 0x80) != 0;
 	u8 background_enable = (bus->mmu->io.lcdc & 0x1) != 0;
 	u8 sprites_enable = (bus->mmu->io.lcdc & 0x2) != 0;
 	u8 window_enable = (bus->mmu->io.lcdc & 0x20) != 0;
@@ -299,32 +338,25 @@ void ppu_render_line(ppu_t* ppu, bus_t* bus)
 	int window_x = ((int)bus->mmu->io.wx) - 7;
 	int window_y = bus->mmu->io.wy;
 
-	if (lcd_enable)
-	{
-		for (usize x = 0; x < LCD_WIDTH; x++)
-		{
-			if (window_enable && (ppu->line >= window_y && (int)x >= window_x))
-			{
-                ppu_set_pixel(ppu, x, ppu->line, ppu_render_background(ppu, bus, x - window_x, ppu->line - window_y, true)); // todo check LCDC.3 only if not a window
-			}
-			else if (background_enable) // render background
-			{
-				ppu_set_pixel(ppu, x, ppu->line, ppu_render_background(ppu, bus, x + scroll_x, ppu->line + scroll_y, false));
-			}
+    for (usize x = 0; x < LCD_WIDTH; x++)
+    {
+        bg_t bg_pixel;
+        if (window_enable && (ppu->line >= window_y && (int)x >= window_x))
+        {
+            bg_pixel = ppu_render_background(ppu, bus, x - window_x, ppu->line - window_y, true);
+            ppu_set_pixel(ppu, x, ppu->line, bg_pixel.color); // todo check LCDC.3 only if not a window
+        }
+        else if (background_enable) // render background
+        {
+            bg_pixel = ppu_render_background(ppu, bus, x + scroll_x, ppu->line + scroll_y, false);
+            ppu_set_pixel(ppu, x, ppu->line, bg_pixel.color);
+        }
 
-			if (sprites_enable) // render sprites
-			{
-				ppu_render_sprites(ppu, bus, x, ppu->line);
-			}
+        if (sprites_enable && ((!(bg_pixel.attributes & 0x80)) || (!bg_pixel.tile))) // render sprites
+        {
+            ppu_render_sprites(ppu, bus, x, ppu->line);
+        }
 
 //			 ppu_debug_bg(ppu, bus, x, ppu->line);
-		}
-	}
-//    else
-//    {
-//        for (usize x = 0; x < LCD_WIDTH; x++)
-//        {
-//            ppu_set_pixel(ppu, x, ppu->line, 0xFFFFFFFF);
-//        }
-//    }
+    }
 }
