@@ -72,24 +72,86 @@ i16 apu_square_wave(u32 seek, usize sample_rate)
     return apu_wave_form(floor(sin(wave)) + 1.0);
 }
 
-u8* apu_map(apu_t* apu, u16 address)
+u8 apu_peek(apu_t* apu, u16 address)
 {
+    return 0xFA;
     switch (address)
     {
-//    case NR10:
-//        break;
+    case MMAP_IO_NR10: return apu->nr10;
+    case MMAP_IO_NR11: return apu->nr11;
+    case MMAP_IO_NR12: return apu->nr12;
+    case MMAP_IO_NR13: return apu->nr13;
+    case MMAP_IO_NR14: return apu->nr14;
+    case MMAP_IO_NR21: return apu->nr21;
+    case MMAP_IO_NR22: return apu->nr22;
+    case MMAP_IO_NR23: return apu->nr23;
+    case MMAP_IO_NR24: return apu->nr24;
+    case MMAP_IO_NR30: return apu->nr30;
+    case MMAP_IO_NR31: return apu->nr31;
+    case MMAP_IO_NR32: return apu->nr32;
+    case MMAP_IO_NR33: return apu->nr33;
+    case MMAP_IO_NR34: return apu->nr34;
+    case MMAP_IO_NR41: return apu->nr41;
+    case MMAP_IO_NR42: return apu->nr42;
+    case MMAP_IO_NR43: return apu->nr43;
+    case MMAP_IO_NR44: return apu->nr44;
+    case MMAP_IO_NR50: return apu->nr50;
+    case MMAP_IO_NR51: return apu->nr51;
+    case MMAP_IO_NR52: return apu->nr52;
     default:
-        printf("[!] unable to map mmu address `0x%04X`\n", address);
+        printf("[!] unable to map apu address `0x%04X`\n", address);
         exit(EXIT_FAILURE);
     }
 }
 
-u8 apu_peek(apu_t* apu, u16 address)
-{
-    return *apu_map(apu, address);
-}
-
 void apu_poke(apu_t* apu, u16 address, u8 value)
 {
-    *apu_map(apu, address) = value;
+    switch (address)
+    {
+        case MMAP_IO_NR10:
+            break;
+        case MMAP_IO_NR11:
+            break;
+        case MMAP_IO_NR12:
+            break;
+        case MMAP_IO_NR13:
+            break;
+        case MMAP_IO_NR14:
+            break;
+        case MMAP_IO_NR21:
+            break;
+        case MMAP_IO_NR22:
+            break;
+        case MMAP_IO_NR23:
+            break;
+        case MMAP_IO_NR24:
+            break;
+        case MMAP_IO_NR30:
+            break;
+        case MMAP_IO_NR31:
+            break;
+        case MMAP_IO_NR32:
+            break;
+        case MMAP_IO_NR33:
+            break;
+        case MMAP_IO_NR34:
+            break;
+        case MMAP_IO_NR41:
+            break;
+        case MMAP_IO_NR42:
+            break;
+        case MMAP_IO_NR43:
+            break;
+        case MMAP_IO_NR44:
+            break;
+        case MMAP_IO_NR50:
+            break;
+        case MMAP_IO_NR51:
+            break;
+        case MMAP_IO_NR52:
+            break;
+        default:
+            printf("[!] unable to map apu address `0x%04X`\n", address);
+            exit(EXIT_FAILURE);
+    }
 }

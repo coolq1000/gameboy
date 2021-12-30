@@ -149,9 +149,6 @@ u8* mmu_map(mmu_t* mmu, u16 address)
                 mmu->io.joyp = input | original;
                 return &mmu->io.joyp;
             }
-			case MMAP_IO_NR52:
-				mmu->null_mem = 0xFA;
-				return &mmu->null_mem;
 			case MMAP_IO_DIV:
 				return &mmu->io.div;
 			case MMAP_IO_TIMA:

@@ -34,7 +34,6 @@
 #define MMAP_IO_TMA 0xFF06
 #define MMAP_IO_TAC 0xFF07
 #define MMAP_IO_IRF 0xFF0F
-#define MMAP_IO_NR52 0xFF26
 #define MMAP_IO_LCDC 0xFF40
 #define MMAP_IO_STAT 0xFF41
 #define MMAP_IO_SCY 0xFF42

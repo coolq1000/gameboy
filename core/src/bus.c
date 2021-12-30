@@ -1,5 +1,7 @@
 #include "core/bus.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include "core/apu.h"
 #include "core/mmu.h"
 #include "core/ppu.h"
@@ -13,6 +15,13 @@ void bus_init(bus_t* bus, apu_t* apu, mmu_t* mmu, ppu_t* ppu)
 
 u8 bus_peek8(bus_t* bus, u16 address)
 {
+    /* apu memory map */
+    if (address >= MMAP_IO_NR10 && address < MMAP_IO_NR52)
+    {
+        return apu_peek(bus->apu, address);
+    }
+
+    /* default back to mmu */
     return mmu_peek(bus->mmu, address);
 }
 

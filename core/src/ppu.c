@@ -157,7 +157,7 @@ void ppu_cycle(ppu_t* ppu, bus_t* bus, usize cycles)
 	}
 
     bus->mmu->io.stat = (bus->mmu->io.stat & 0xFC) | ppu->mode;
-    ppu->cycles++;
+    ppu->cycles += cycles / 4;
 }
 
 void ppu_set_pixel(ppu_t* ppu, usize x, usize y, u32 value)

@@ -4,6 +4,28 @@
 
 #include "util.h"
 
+#define MMAP_IO_NR10 0xFF10
+#define MMAP_IO_NR11 0xFF11
+#define MMAP_IO_NR12 0xFF12
+#define MMAP_IO_NR13 0xFF13
+#define MMAP_IO_NR14 0xFF14
+#define MMAP_IO_NR21 0xFF16
+#define MMAP_IO_NR22 0xFF17
+#define MMAP_IO_NR23 0xFF18
+#define MMAP_IO_NR24 0xFF19
+#define MMAP_IO_NR30 0xFF1A
+#define MMAP_IO_NR31 0xFF1B
+#define MMAP_IO_NR32 0xFF1C
+#define MMAP_IO_NR33 0xFF1D
+#define MMAP_IO_NR34 0xFF1E
+#define MMAP_IO_NR41 0xFF20
+#define MMAP_IO_NR42 0xFF21
+#define MMAP_IO_NR43 0xFF22
+#define MMAP_IO_NR44 0xFF23
+#define MMAP_IO_NR50 0xFF24
+#define MMAP_IO_NR51 0xFF25
+#define MMAP_IO_NR52 0xFF26
+
 typedef struct apu apu_t;
 
 typedef struct timer
@@ -60,6 +82,13 @@ typedef struct channel
 
 typedef struct apu
 {
+    /* registers */
+    u8 nr10, nr11, nr12, nr13, nr14;    /* channel 1 */
+    u8 nr20, nr21, nr22, nr23, nr24;    /* channel 2 */
+    u8 nr30, nr31, nr32, nr33, nr34;    /* channel 3 */
+    u8 nr40, nr41, nr42, nr43, nr44;    /* channel 4 */
+    u8 nr50, nr51, nr52;                /* mixer     */
+
     u16 sync_clock;
     i16 sample;
     u8 left_volume, right_volume;
@@ -79,7 +108,6 @@ i16 apu_sawtooth_wave(u32 seek, usize sample_rate);
 i16 apu_triangle_wave(u32 seek, usize sample_rate);
 i16 apu_square_wave(u32 seek, usize sample_rate);
 
-u8* apu_map(apu_t* apu, u16 address);
 u8 apu_peek(apu_t* apu, u16 address);
 void apu_poke(apu_t* apu, u16 address, u8 value);
 

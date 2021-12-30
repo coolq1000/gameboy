@@ -64,7 +64,7 @@ namespace app
     {
         if (turbo)
         {
-            gameboy.ppu.frame_step = 10;
+            gameboy.ppu.frame_step = 5;
             window.setFramerateLimit(0);
         }
         else
