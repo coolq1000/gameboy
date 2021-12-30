@@ -26,12 +26,23 @@
 #define MMAP_IO_NR51 0xFF25
 #define MMAP_IO_NR52 0xFF26
 
+#define MMAP_IO_WAVE_START  0xFF30
+#define MMAP_IO_WAVE_SIZE   0x10
+#define MMAP_IO_WAVE_END    (MMAP_IO_WAVE_START + MMAP_IO_WAVE_SIZE)
+
+#define AMP_MAX     (I16_MAX / 0x10)
+#define AMP_CHL     (AMP_MAX / 0x04)
+#define AMP_BASE    (AMP_CHL / 0x10)
+
 typedef struct apu apu_t;
 
 typedef struct timer
 {
     u16 period, counter;
 } timer_t;
+
+void timer_reset(timer_t* timer);
+bool timer_cycle(timer_t* timer);
 
 typedef struct duty
 {
@@ -41,12 +52,16 @@ typedef struct duty
     bool enabled;
 } duty_t;
 
+bool duty_cycle(duty_t* duty);
+
 typedef struct sweep
 {
     timer_t timer;
     u16 period, frequency, shift;
     bool decreasing, enabled, calculated;
 } sweep_t;
+
+u16 sweep_frequency_calc(sweep_t* sweep);
 
 typedef struct noise
 {
@@ -72,6 +87,8 @@ typedef struct envelope
     bool enabled;
 } envelope_t;
 
+void envelope_cycle(envelope_t* envelope);
+
 typedef struct channel
 {
     envelope_t envelope;
@@ -79,6 +96,8 @@ typedef struct channel
     u16 counter;
     bool length_enable, state, enabled, dac, left, right;
 } channel_t;
+
+void channel_length_counter_cycle(channel_t* channel);
 
 typedef struct apu
 {
@@ -92,21 +111,24 @@ typedef struct apu
     u16 sync_clock;
     i16 sample;
     u8 left_volume, right_volume;
-    bool disabled, div_bit;
+    bool enabled, div_bit;
     channel_t ch1; /* tone & sweep */
     channel_t ch2; /* tone */
     channel_t ch3; /* wave output */
     channel_t ch4; /* noise */
+    sweep_t sweep;
+    noise_t noise;
+    wave_t wave;
+    u8 sequence;
 } apu_t;
 
 void apu_init(apu_t* apu);
+void apu_cycle(apu_t* apu);
+void apu_sequence_cycle(apu_t* apu);
 
-i16 apu_tone_sweep(apu_t* apu, u32 seek, usize sample_rate);
+void apu_ch1_trigger(apu_t* apu);
 
-i16 apu_sine_wave(u32 seek, usize sample_rate);
-i16 apu_sawtooth_wave(u32 seek, usize sample_rate);
-i16 apu_triangle_wave(u32 seek, usize sample_rate);
-i16 apu_square_wave(u32 seek, usize sample_rate);
+i16 apu_ch1_sample(apu_t* apu);
 
 u8 apu_peek(apu_t* apu, u16 address);
 void apu_poke(apu_t* apu, u16 address, u8 value);

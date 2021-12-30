@@ -5,7 +5,7 @@ bool audio_stream::onGetData(Chunk& data)
     /* emit samples into buffer */
     for (usize seek = 0; seek < sample_rate; seek++)
     {
-        samples[seek] = apu.emit(seek, getSampleRate()) * 0.01f;
+        samples[seek] = apu.emit();
     }
 
     data.samples = &samples[current_sample];

@@ -2724,6 +2724,8 @@ void cpu_cycle(cpu_t* cpu, bus_t* bus)
         bus->mmu->io.div++;
 		cpu->clock.div_diff -= (16 * 16);
 
+        apu_sequence_cycle(bus->apu);
+
 		if (bus->mmu->io.tac & 0x4)
 		{
 			u8 og_tima = bus->mmu->io.tima;

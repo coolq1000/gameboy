@@ -32,10 +32,9 @@ namespace gmb
             gmb_c::apu_init(&core_apu);
         }
 
-        inline i16 emit(u32 seek, usize sample_rate)
+        inline i16 emit()
         {
-            return 0;
-//            return core_apu.ch1.sample_callback(&core_apu, seek, sample_rate);
+            return gmb_c::apu_ch1_sample(&core_apu);
         }
     };
 
