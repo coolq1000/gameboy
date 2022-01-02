@@ -13,9 +13,9 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "../../res/roms/zs.gbc";
-const char* save_path = "../../res/roms/zs.sav";
-// const char* save_path = "";
+const char* cart_path = "../../res/roms/ladx.gbc";
+//const char* save_path = "../../res/roms/poke_gold.sav";
+ const char* save_path = "";
 
 namespace app
 {
@@ -26,11 +26,10 @@ namespace app
 	sf::Text text;
 	std::unique_ptr<uint32_t> lcd_pixels;
 
-    gmb::apu apu;
-    audio_stream as(apu);
-
 	gmb_c::dmg_t gameboy;
 	gmb_c::rom_t rom;
+
+    audio_stream as(reinterpret_cast<gmb::apu *>(&gameboy.apu));
 
 	void draw();
 

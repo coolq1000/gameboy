@@ -13,14 +13,14 @@ class audio_stream : public sf::SoundStream
     usize current_sample;
     std::vector<sf::Int16> samples;
 
-    gmb::apu apu;
+    gmb::apu* apu;
 
     virtual bool onGetData(Chunk& data);
     virtual void onSeek(sf::Time timeOffset);
 
 public:
 
-    audio_stream(gmb::apu apu);
+    audio_stream(gmb::apu* apu);
 
     void load();
 };

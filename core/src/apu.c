@@ -87,7 +87,7 @@ void apu_init(apu_t* apu)
 
 void apu_cycle(apu_t* apu)
 {
-    if (!apu->enabled)
+    if (apu->enabled)
     {
         /* duty cycle */
         if (apu->ch1.duty.enabled) apu->ch1.state = duty_cycle(&apu->ch1.duty);
@@ -191,12 +191,12 @@ i16 apu_ch1_sample(apu_t* apu)
 
     if (apu->ch1.dac)
     {
-        sample -= AMP_CHL / 2;
+//        sample -= AMP_CHL / 2;
     }
     if (apu->ch1.enabled)
     {
-        sample += AMP_BASE * apu->ch1.state * apu->ch1.envelope.volume;
-        printf("sample: %d\n", sample);
+//        sample += AMP_BASE * apu->ch1.state * apu->ch1.envelope.volume;
+        sample = apu->ch1.state * AMP_MAX;
     }
 
     return sample;
@@ -280,6 +280,8 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
             apu->ch1.duty.frequency |= (value & 0x7) << 8;
             if (value & 0x80) apu_ch1_trigger(apu);
             break;
+        case MMAP_IO_NR15:
+            break; /* unused */
         case MMAP_IO_NR21:
             apu->nr21 = value;
             break;
@@ -309,6 +311,8 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
         case MMAP_IO_NR34:
             apu->nr34 = value;
             break;
+        case MMAP_IO_NR40:
+            break; /* unused */
         case MMAP_IO_NR41:
             apu->nr41 = value;
             break;

@@ -3,13 +3,13 @@
 bool audio_stream::onGetData(Chunk& data)
 {
     /* emit samples into buffer */
-    for (usize seek = 0; seek < sample_rate; seek++)
+    for (usize seek = 0; seek < 2048; seek++)
     {
-        samples[seek] = apu.emit();
+        samples[seek] = apu->emit();
     }
 
     data.samples = &samples[current_sample];
-    data.sampleCount = sample_rate;
+    data.sampleCount = 2048;
     return true;
 }
 
@@ -18,8 +18,9 @@ void audio_stream::onSeek(sf::Time timeOffset)
     current_sample = static_cast<usize>(timeOffset.asSeconds() * getSampleRate() * getChannelCount());
 }
 
-audio_stream::audio_stream(gmb::apu apu) : apu(apu)
+audio_stream::audio_stream(gmb::apu* apu)
 {
+    this->apu = apu;
     load();
 }
 

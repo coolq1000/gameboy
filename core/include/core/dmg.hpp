@@ -27,13 +27,15 @@ namespace gmb
 
     public:
 
-        inline apu()
+        apu()
         {
             gmb_c::apu_init(&core_apu);
         }
 
-        inline i16 emit()
+        i16 emit()
         {
+//            gmb_c::apu_cycle(&core_apu);
+//            gmb_c::apu_sequence_cycle(&core_apu);
             return gmb_c::apu_ch1_sample(&core_apu);
         }
     };

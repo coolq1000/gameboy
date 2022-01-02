@@ -9,6 +9,7 @@
 #define MMAP_IO_NR12 0xFF12
 #define MMAP_IO_NR13 0xFF13
 #define MMAP_IO_NR14 0xFF14
+#define MMAP_IO_NR15 0xFF15
 #define MMAP_IO_NR21 0xFF16
 #define MMAP_IO_NR22 0xFF17
 #define MMAP_IO_NR23 0xFF18
@@ -18,6 +19,7 @@
 #define MMAP_IO_NR32 0xFF1C
 #define MMAP_IO_NR33 0xFF1D
 #define MMAP_IO_NR34 0xFF1E
+#define MMAP_IO_NR40 0xFF1F
 #define MMAP_IO_NR41 0xFF20
 #define MMAP_IO_NR42 0xFF21
 #define MMAP_IO_NR43 0xFF22
