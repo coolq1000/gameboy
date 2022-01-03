@@ -13,9 +13,9 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "../../res/roms/ladx.gbc";
-//const char* save_path = "../../res/roms/poke_gold.sav";
- const char* save_path = "";
+const char* cart_path = "../../res/roms/la.gb";
+const char* save_path = "../../res/roms/la.sav";
+//  const char* save_path = "";
 
 namespace app
 {
@@ -24,19 +24,20 @@ namespace app
 	sf::Sprite lcd_sprite;
 	sf::Font font;
 	sf::Text text;
+	sf::View view;
 	std::unique_ptr<uint32_t> lcd_pixels;
 
 	gmb_c::dmg_t gameboy;
 	gmb_c::rom_t rom;
 
-    audio_stream as(reinterpret_cast<gmb::apu *>(&gameboy.apu));
+    audio_stream as(reinterpret_cast<gmb::apu*>(&gameboy.apu));
 
 	void draw();
 
 	void start()
 	{
 		gmb_c::rom_init(&rom, cart_path, save_path);
-		gmb_c::dmg_init(&gameboy, &rom, true);
+		gmb_c::dmg_init(&gameboy, &rom, false);
 
 		window.create(sf::VideoMode(window_width, window_height), "gameboy");
 		bool created = lcd.create(lcd_width, lcd_height);
@@ -45,6 +46,9 @@ namespace app
 		auto scale_x = window_width / lcd_width;
 		auto scale_y = window_height / lcd_height;
 		lcd_sprite.scale(scale_x, scale_y);
+
+		view.setSize(window_width, window_height);
+		view.setCenter(window_width / 2.0f, window_height / 2.0f);
 
 		lcd_pixels = std::unique_ptr<uint32_t>(new uint32_t[lcd_width * lcd_height]());
 
@@ -93,6 +97,27 @@ namespace app
 
 	void draw()
 	{
+		/* reposition lcd sprite */
+		sf::Vector2u window_size = window.getSize();
+		float window_ratio = window_size.x / (float)window_size.y;
+		float lcd_ratio = lcd_width / (float)lcd_height;
+		
+		float pos_x = 0, pos_y = 0;
+		float size_x = 0, size_y = 0;
+
+		bool horizontal_spacing = window_ratio >= lcd_ratio;
+
+		if (horizontal_spacing)
+		{
+			size_x = lcd_ratio / window_ratio;
+			pos_x = (1.0f - size_x) / 2.0f;
+		}
+		else
+		{
+			size_y = window_ratio / lcd_ratio;
+			pos_y = (1.0f - size_y) / 2.0f;
+		}
+
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
@@ -100,6 +125,9 @@ namespace app
 			{
 			case sf::Event::Closed:
 				window.close();
+				break;
+			case sf::Event::Resized:
+				window.setView(view);
 				break;
 			case sf::Event::KeyPressed:
 				switch (event.key.code)
@@ -171,7 +199,11 @@ namespace app
 			}
 		}
 
+		window.clear();
+
 		lcd.update(reinterpret_cast<sf::Uint8*>(lcd_pixels.get()));
+
+		view.setViewport(sf::FloatRect(pos_x, pos_y, size_x, size_y));
 
 		window.draw(lcd_sprite);
 

@@ -12,6 +12,7 @@
 .vscode/
 
 # build files
+build/
 build-debug/
 build-release/
 
