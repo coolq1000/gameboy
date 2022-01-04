@@ -29,12 +29,23 @@ bool timer_cycle(timer_t* timer)
 
 bool duty_cycle(duty_t* duty)
 {
-    duty->timer.period = (0x800 - duty->frequency) << 2;
+    duty->timer.period = (2048 - duty->frequency) * 4;
 
-    if (timer_cycle(&duty->timer))
+//    if (timer_cycle(&duty->timer))
+//    {
+//        duty->counter++;
+//        duty->counter %= 0x8;
+//    }
+
+    if (duty->timer.counter == 1)
     {
         duty->counter++;
-        duty->counter %= 0x8;
+        duty->counter %= 8;
+        duty->timer.counter = duty->timer.period;
+    }
+    else
+    {
+        duty->timer.counter--;
     }
 
     return duty_table[duty->cycle][duty->counter];
@@ -78,11 +89,23 @@ void channel_length_counter_cycle(channel_t* channel)
     }
 }
 
-void apu_init(apu_t* apu)
+void apu_init(apu_t* apu, usize sample_rate, usize latency)
 {
     *apu = (apu_t){ 0 };
+    apu->sample_rate = sample_rate;
+    apu->latency = latency;
     apu->wave.address = MMAP_IO_WAVE_START;
     apu->wave.position = 0;
+    apu->buffer = malloc(sizeof(i16) * latency);
+    apu->index = 0;
+
+    /* clear out mixing buffer */
+    for (usize i = 0; i < latency; i++) apu->buffer[i] = 0;
+}
+
+void apu_free(apu_t* apu)
+{
+    free(apu->buffer);
 }
 
 void apu_cycle(apu_t* apu)
@@ -92,6 +115,11 @@ void apu_cycle(apu_t* apu)
         /* duty cycle */
         if (apu->ch1.duty.enabled) apu->ch1.state = duty_cycle(&apu->ch1.duty);
     }
+}
+
+void apu_update(apu_t* apu)
+{
+    apu->buffer[apu->index++ % apu->latency] = apu_ch1_sample(apu);
 }
 
 void apu_sequence_cycle(apu_t* apu)
@@ -157,7 +185,7 @@ void apu_ch1_trigger(apu_t* apu)
     apu->ch1.duty.enabled = true;
     apu->ch1.duty.cycle = (apu->nr11 & 0xC0) >> 0x6;
     apu->ch1.duty.frequency = apu->nr13;
-    apu->ch1.duty.frequency = (apu->nr14 & 0x7) << 0x8;
+    apu->ch1.duty.frequency |= (apu->nr14 & 0x7) << 0x8;
     apu->ch1.enabled = true;
 
     if (apu->ch1.counter == 0) apu->ch1.counter = 64;
@@ -251,7 +279,7 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
             apu->sweep.period = (value & 0x70) >> 4;
             apu->sweep.timer.period = apu->sweep.period;
             if (apu->sweep.timer.period == 0) apu->sweep.timer.period = 8;
-            if (!(value & 0x4) && apu->sweep.decreasing && apu->sweep.calculated) apu->ch1.enabled = false;
+            if (!(value & 0x8) && apu->sweep.decreasing && apu->sweep.calculated) apu->ch1.enabled = false;
             apu->sweep.decreasing = value & 0x4;
             apu->sweep.shift = value & 0x7;
             break;
@@ -344,7 +372,7 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
         case MMAP_IO_NR52:
             apu->nr52 = value;
             apu->enabled = value & 0x80;
-            if (!apu->enabled) apu_init(apu);
+            if (!apu->enabled) apu_init(apu, apu->sample_rate, apu->latency);
             break;
         default:
             printf("[!] unable to write apu address `0x%04X`\n", address);

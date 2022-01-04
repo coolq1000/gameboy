@@ -2,14 +2,14 @@
 
 bool audio_stream::onGetData(Chunk& data)
 {
-    /* emit samples into buffer */
-    for (usize seek = 0; seek < 2048; seek++)
+    /* copy samples into buffer */
+    for (usize seek = 0; seek < apu->latency; seek++)
     {
-        samples[seek] = apu->emit();
+        samples[seek] = apu->core_apu.buffer[seek];
     }
 
     data.samples = &samples[current_sample];
-    data.sampleCount = 2048;
+    data.sampleCount = apu->latency;
     return true;
 }
 
@@ -27,11 +27,11 @@ audio_stream::audio_stream(gmb::apu* apu)
 void audio_stream::load()
 {
     /* fill with empty samples */
-    samples.resize(sample_rate);
+    samples.resize(apu->latency);
 
     /* reset current sample to beginning */
     current_sample = 0;
 
     /* call back to the super (sf::SoundStream) for initialization */
-    initialize(1, sample_rate);
+    initialize(1, apu->sample_rate);
 }

@@ -17,7 +17,7 @@ typedef struct dmg
     bus_t bus;
 } dmg_t;
 
-void dmg_init(dmg_t* dmg, rom_t* rom, bool is_cgb);
+void dmg_init(dmg_t* dmg, rom_t* rom, bool is_cgb, usize sample_rate, usize latency);
 void dmg_free(dmg_t* dmg);
 
 void dmg_cycle(dmg_t* dmg);

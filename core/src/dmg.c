@@ -1,9 +1,9 @@
 #include "core/dmg.h"
 
-void dmg_init(dmg_t* dmg, rom_t* rom, bool is_cgb)
+void dmg_init(dmg_t* dmg, rom_t* rom, bool is_cgb, usize sample_rate, usize latency)
 {
     /* initialize components */
-    apu_init(&dmg->apu);
+    apu_init(&dmg->apu, sample_rate, latency);
 	cpu_init(&dmg->cpu, is_cgb);
 	mmu_init(&dmg->mmu, rom);
 	ppu_init(&dmg->ppu, is_cgb);
@@ -14,6 +14,7 @@ void dmg_init(dmg_t* dmg, rom_t* rom, bool is_cgb)
 
 void dmg_free(dmg_t* dmg)
 {
+    apu_free(&dmg->apu);
 	mmu_free(&dmg->mmu);
 }
 

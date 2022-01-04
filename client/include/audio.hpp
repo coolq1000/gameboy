@@ -6,8 +6,6 @@
 #include "core/util.h"
 #include "core/dmg.hpp"
 
-constexpr usize sample_rate = 44100;
-
 class audio_stream : public sf::SoundStream
 {
     usize current_sample;

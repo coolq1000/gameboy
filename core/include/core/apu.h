@@ -110,6 +110,7 @@ typedef struct apu
     u8 nr40, nr41, nr42, nr43, nr44;    /* channel 4 */
     u8 nr50, nr51, nr52;                /* mixer     */
 
+    usize sample_rate, latency;
     u16 sync_clock;
     i16 sample;
     u8 left_volume, right_volume;
@@ -122,10 +123,15 @@ typedef struct apu
     noise_t noise;
     wave_t wave;
     u8 sequence;
+    i16* buffer;
+    usize index;
 } apu_t;
 
-void apu_init(apu_t* apu);
+void apu_init(apu_t* apu, usize sample_rate, usize latency);
+void apu_free(apu_t* api);
+
 void apu_cycle(apu_t* apu);
+void apu_update(apu_t* apu);
 void apu_sequence_cycle(apu_t* apu);
 
 void apu_ch1_trigger(apu_t* apu);

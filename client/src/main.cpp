@@ -13,8 +13,8 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "../../res/roms/zs.gbc";
-const char* save_path = "../../res/roms/zs.sav";
+const char* cart_path = "../../res/roms/ladx.gbc";
+const char* save_path = "../../res/roms/ladx.sav";
 //  const char* save_path = "";
 
 namespace app
@@ -26,18 +26,15 @@ namespace app
 	sf::Text text;
 	std::unique_ptr<uint32_t> lcd_pixels;
 
-	gmb_c::dmg_t gameboy;
-	gmb_c::rom_t rom;
+    gmb::rom rom(cart_path, save_path);
+    gmb::dmg gameboy(rom, true, 44100, 2048);
 
-    audio_stream as(reinterpret_cast<gmb::apu*>(&gameboy.apu));
+    audio_stream as(&gameboy.apu_);
 
 	void draw();
 
 	void start()
 	{
-		gmb_c::rom_init(&rom, cart_path, save_path);
-		gmb_c::dmg_init(&gameboy, &rom, true);
-
 		window.create(sf::VideoMode(window_width, window_height), "gameboy");
 		bool created = lcd.create(lcd_width, lcd_height);
 
@@ -52,20 +49,19 @@ namespace app
 
 	void stop()
 	{
-		gmb_c::rom_dump_save(&rom, &gameboy.mmu, save_path);
-		gmb_c::rom_free(&rom);
+		rom.dump_save(gameboy.mmu_);
 	}
 
     void set_turbo(bool turbo)
     {
         if (turbo)
         {
-            gameboy.ppu.frame_step = 5;
+            gameboy.core_dmg.ppu.frame_step = 5;
             window.setFramerateLimit(0);
         }
         else
         {
-            gameboy.ppu.frame_step = 1;
+            gameboy.core_dmg.ppu.frame_step = 1;
             window.setFramerateLimit(60);
         }
     }
@@ -76,8 +72,8 @@ namespace app
 
 		while (window.isOpen())
 		{
-			gmb_c::dmg_cycle(&gameboy);
-            if ((gameboy.cpu.interrupt.master && gameboy.ppu.draw) || i % 1000000 == 0) draw();
+            gameboy.cycle();
+            if ((gameboy.core_dmg.cpu.interrupt.master && gameboy.core_dmg.ppu.draw) || i % 1000000 == 0) draw();
 
             i++;
 		}
@@ -128,14 +124,14 @@ namespace app
 			case sf::Event::KeyPressed:
 				switch (event.key.code)
 				{
-				case sf::Keyboard::Enter: gameboy.mmu.buttons.start = true; break;
-				case sf::Keyboard::Backspace: gameboy.mmu.buttons.select = true; break;
-				case sf::Keyboard::Z: gameboy.mmu.buttons.b = true; break;
-				case sf::Keyboard::X: gameboy.mmu.buttons.a = true; break;
-				case sf::Keyboard::Down: gameboy.mmu.buttons.down = true; break;
-				case sf::Keyboard::Up: gameboy.mmu.buttons.up = true; break;
-				case sf::Keyboard::Left: gameboy.mmu.buttons.left = true; break;
-				case sf::Keyboard::Right: gameboy.mmu.buttons.right = true; break;
+				case sf::Keyboard::Enter: gameboy.core_dmg.mmu.buttons.start = true; break;
+				case sf::Keyboard::Backspace: gameboy.core_dmg.mmu.buttons.select = true; break;
+				case sf::Keyboard::Z: gameboy.core_dmg.mmu.buttons.b = true; break;
+				case sf::Keyboard::X: gameboy.core_dmg.mmu.buttons.a = true; break;
+				case sf::Keyboard::Down: gameboy.core_dmg.mmu.buttons.down = true; break;
+				case sf::Keyboard::Up: gameboy.core_dmg.mmu.buttons.up = true; break;
+				case sf::Keyboard::Left: gameboy.core_dmg.mmu.buttons.left = true; break;
+				case sf::Keyboard::Right: gameboy.core_dmg.mmu.buttons.right = true; break;
 
                 case sf::Keyboard::Space: set_turbo(true); break;
 				}
@@ -143,14 +139,14 @@ namespace app
 			case sf::Event::KeyReleased:
 				switch (event.key.code)
 				{
-				case sf::Keyboard::Enter: gameboy.mmu.buttons.start = false; break;
-				case sf::Keyboard::Backspace: gameboy.mmu.buttons.select = false; break;
-				case sf::Keyboard::Z: gameboy.mmu.buttons.b = false; break;
-				case sf::Keyboard::X: gameboy.mmu.buttons.a = false; break;
-				case sf::Keyboard::Down: gameboy.mmu.buttons.down = false; break;
-				case sf::Keyboard::Up: gameboy.mmu.buttons.up = false; break;
-				case sf::Keyboard::Left: gameboy.mmu.buttons.left = false; break;
-				case sf::Keyboard::Right: gameboy.mmu.buttons.right = false; break;
+				case sf::Keyboard::Enter: gameboy.core_dmg.mmu.buttons.start = false; break;
+				case sf::Keyboard::Backspace: gameboy.core_dmg.mmu.buttons.select = false; break;
+				case sf::Keyboard::Z: gameboy.core_dmg.mmu.buttons.b = false; break;
+				case sf::Keyboard::X: gameboy.core_dmg.mmu.buttons.a = false; break;
+				case sf::Keyboard::Down: gameboy.core_dmg.mmu.buttons.down = false; break;
+				case sf::Keyboard::Up: gameboy.core_dmg.mmu.buttons.up = false; break;
+				case sf::Keyboard::Left: gameboy.core_dmg.mmu.buttons.left = false; break;
+				case sf::Keyboard::Right: gameboy.core_dmg.mmu.buttons.right = false; break;
 
                 case sf::Keyboard::Space: set_turbo(false); break;
 				}
@@ -162,7 +158,7 @@ namespace app
 		{
 			for (size_t y = 0; y < lcd_height; y++)
 			{
-				uint32_t raw_pixel = gmb_c::ppu_get_pixel(&gameboy.ppu, x, y);
+				uint32_t raw_pixel = gmb_c::ppu_get_pixel(&gameboy.core_dmg.ppu, x, y);
 				// lcd_pixels.get()[x + (y * 160)] = raw_pixel;
 
 				const static float saturation = 0.95f;
