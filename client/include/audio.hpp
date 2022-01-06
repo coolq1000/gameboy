@@ -5,6 +5,7 @@
 #include <SFML/Audio.hpp>
 #include "core/util.h"
 #include "core/dmg.hpp"
+#include <al/al.h>
 
 class audio_stream : public sf::SoundStream
 {
