@@ -57,7 +57,7 @@ typedef struct cpu
 	{
 		u8 cycles;
 		u16 div_diff;
-		u8 tima_mod;
+		usize tima_cycles;
 	} clock;
 	struct
 	{
@@ -72,6 +72,8 @@ typedef struct cpu
 	bool stopped;
 	bool halted;
 } cpu_t;
+
+extern usize tac_cycles[4];
 
 void cpu_init(cpu_t* cpu, bool is_cgb);
 

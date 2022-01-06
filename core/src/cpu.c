@@ -6,6 +6,8 @@
 #include "core/mmu.h"
 #include "core/ppu.h"
 
+usize tac_cycles[4] = {1024, 16, 64, 256 };
+
 void cpu_init(cpu_t* cpu, bool is_cgb)
 {
 	/* setup registers */
@@ -20,7 +22,7 @@ void cpu_init(cpu_t* cpu, bool is_cgb)
 	/* setup clock */
 	cpu->clock.cycles = 0;
 	cpu->clock.div_diff = 0;
-	cpu->clock.tima_mod = 0;
+	cpu->clock.tima_cycles = 0;
 
 	/* setup interrupts */
 	cpu->interrupt.pending = 0;
@@ -1407,7 +1409,7 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 
 	/* update state */
 	cpu->registers.pc += opc->length - 1; // subtract one because length of prefix is already counted
-	cpu->clock.cycles = opc->cycles;
+	cpu->clock.cycles += opc->cycles;
 
 	/* temporary values */
 	u8 tmp8;
@@ -2713,35 +2715,22 @@ void cpu_cycle(cpu_t* cpu, bus_t* bus)
 	{
         bus->mmu->io.div++;
 		cpu->clock.div_diff -= (16 * 16);
-
-        apu_sequence_cycle(bus->apu);
-
-		if (bus->mmu->io.tac & 0x4)
-		{
-			u8 og_tima = bus->mmu->io.tima;
-			switch (bus->mmu->io.tac & 0x3)
-			{
-			case 0b00:
-				if (cpu->clock.tima_mod % 64) bus->mmu->io.tima++;
-				break;
-			case 0b01:
-				if (cpu->clock.tima_mod % 1) bus->mmu->io.tima++;
-				break;
-			case 0b10:
-				if (cpu->clock.tima_mod % 4) bus->mmu->io.tima++;
-				break;
-			case 0b11:
-				if (cpu->clock.tima_mod % 16) bus->mmu->io.tima++;
-				break;
-			}
-
-			if (bus->mmu->io.tima < og_tima) // tima timer overflown
-			{
-				cpu_request(cpu, bus, INT_TIMER_INDEX);
-                bus->mmu->io.tima = bus->mmu->io.tma;
-			}
-		}
-
-		cpu->clock.tima_mod++;
 	}
+
+    if (bus->mmu->io.tac & 0x4)
+    {
+        cpu->clock.tima_cycles += cpu->clock.cycles;
+
+        usize tac_rate = tac_cycles[bus->mmu->io.tac & 0x3] * (cpu->cgb.enabled * 2);
+        if (cpu->clock.tima_cycles > tac_rate)
+        {
+            cpu->clock.tima_cycles -= tac_rate;
+            bus->mmu->io.tima++;
+            if (bus->mmu->io.tima == 0) // tima timer overflown
+            {
+                cpu_request(cpu, bus, INT_TIMER_INDEX);
+                bus->mmu->io.tima = bus->mmu->io.tma;
+            }
+        }
+    }
 }

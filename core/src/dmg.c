@@ -20,7 +20,8 @@ void dmg_free(dmg_t* dmg)
 
 void dmg_cycle(dmg_t* dmg)
 {
-    apu_cycle(&dmg->apu);
 	cpu_cycle(&dmg->cpu, &dmg->bus);
-	ppu_cycle(&dmg->ppu, &dmg->bus, dmg->cpu.clock.cycles);
+    ppu_cycle(&dmg->ppu, &dmg->bus, dmg->cpu.clock.cycles);
+
+    apu_cycle(&dmg->apu, &dmg->bus, dmg->cpu.clock.cycles);
 }

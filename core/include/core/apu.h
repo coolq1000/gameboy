@@ -2,6 +2,7 @@
 #ifndef APU_H
 #define APU_H
 
+#include "bus.h"
 #include "util.h"
 
 #define MMAP_IO_NR10 0xFF10
@@ -28,81 +29,101 @@
 #define MMAP_IO_NR51 0xFF25
 #define MMAP_IO_NR52 0xFF26
 
-#define MMAP_IO_WAVE_START  0xFF30
-#define MMAP_IO_WAVE_SIZE   0x10
-#define MMAP_IO_WAVE_END    (MMAP_IO_WAVE_START + MMAP_IO_WAVE_SIZE)
+#define MMAP_IO_WAVE 0xFF30
 
-#define AMP_MAX     (I16_MAX / 0x10)
+#define CPU_FREQUENCY 4190000
+
+#define AMP_MAX     (I16_MAX)
 #define AMP_CHL     (AMP_MAX / 0x04)
 #define AMP_BASE    (AMP_CHL / 0x10)
 
-typedef struct apu apu_t;
+/*
+ * timer - a simple timer struct which counts down from the period
+ */
 
 typedef struct timer
 {
-    u16 period, counter;
+    u16 counter, period;
 } timer_t;
 
+bool timer_tick(timer_t* timer);
 void timer_reset(timer_t* timer);
-bool timer_cycle(timer_t* timer);
+
+/*
+ * length - a timer with an enable switch
+ */
+
+typedef struct length
+{
+    timer_t timer;
+    bool enabled;
+} length_t;
+
+bool length_tick(length_t* length);
+void length_reset(length_t* length);
+
+/*
+ * duty - contains a timer which ticks at a frequency, outputs from the duty table
+ */
 
 typedef struct duty
 {
     timer_t timer;
-    u8 counter, cycle;
+    u8 pattern, position;
     u16 frequency;
-    bool enabled;
+    bool enabled, state;
 } duty_t;
 
-bool duty_cycle(duty_t* duty);
-
-typedef struct sweep
-{
-    timer_t timer;
-    u16 period, frequency, shift;
-    bool decreasing, enabled, calculated;
-} sweep_t;
-
-u16 sweep_frequency_calc(sweep_t* sweep);
-
-typedef struct noise
-{
-    timer_t timer;
-    u8 shift;
-    bool width_mode;
-    u16 lfsr;
-} noise_t;
-
-typedef struct wave
-{
-    timer_t timer;
-    u16 address, frequency;
-    u8 buffer, position, shift;
-} wave_t;
+u8 duty_cycle(duty_t* duty, usize cycles);
 
 typedef struct envelope
 {
     timer_t timer;
-    u16 start_volume;
-    u8 volume;
+    u8 start_volume, volume;
     i8 direction;
     bool enabled;
 } envelope_t;
 
 void envelope_cycle(envelope_t* envelope);
 
+typedef struct sweep
+{
+    u16 frequency;
+    u8 shift;
+    bool decreasing;
+} sweep_t;
+
+void sweep_cycle(sweep_t* sweep);
+
+typedef struct wave
+{
+    timer_t timer;
+    u16 frequency;
+    u8 shift;
+    u16 position;
+    u8 output;
+} wave_t;
+
+u8 wave_cycle(wave_t* wave, bus_t* bus, usize cycles);
+
 typedef struct channel
 {
-    envelope_t envelope;
+    bool dac, enabled, left, right;
+
+    length_t length;
     duty_t duty;
-    u16 counter;
-    bool length_enable, state, enabled, dac, left, right;
+    envelope_t envelope;
+    sweep_t sweep;
+    wave_t wave;
 } channel_t;
 
-void channel_length_counter_cycle(channel_t* channel);
+void channel_length_cycle(channel_t* channel);
 
 typedef struct apu
 {
+    /* audio variables */
+    usize sample_rate, latency;
+
     /* registers */
     u8 nr10, nr11, nr12, nr13, nr14;    /* channel 1 */
     u8 nr20, nr21, nr22, nr23, nr24;    /* channel 2 */
@@ -110,33 +131,36 @@ typedef struct apu
     u8 nr40, nr41, nr42, nr43, nr44;    /* channel 4 */
     u8 nr50, nr51, nr52;                /* mixer     */
 
-    usize sample_rate, latency;
-    u16 sync_clock;
-    i16 sample;
-    u8 left_volume, right_volume;
-    bool enabled, div_bit;
+    bool enabled;
     channel_t ch1; /* tone & sweep */
     channel_t ch2; /* tone */
     channel_t ch3; /* wave output */
     channel_t ch4; /* noise */
-    sweep_t sweep;
-    noise_t noise;
-    wave_t wave;
-    u8 sequence;
+
+    /* timing */
+    u16 clock, sample_clock;
+
+    /* frame sequencer */
+    u8 frame_sequence;
+
+    /* mixing */
+    usize sample;
     i16* buffer;
-    usize index;
 } apu_t;
 
 void apu_init(apu_t* apu, usize sample_rate, usize latency);
-void apu_free(apu_t* api);
+void apu_free(apu_t* apu);
 
-void apu_cycle(apu_t* apu);
-void apu_update(apu_t* apu);
-void apu_sequence_cycle(apu_t* apu);
+void apu_cycle(apu_t* apu, bus_t* bus, usize cycles);
+void apu_frame_sequencer(apu_t* apu);
 
 void apu_ch1_trigger(apu_t* apu);
+void apu_ch2_trigger(apu_t* apu);
+void apu_ch3_trigger(apu_t* apu);
 
 i16 apu_ch1_sample(apu_t* apu);
+i16 apu_ch2_sample(apu_t* apu);
+i16 apu_ch3_sample(apu_t* apu);
 
 u8 apu_peek(apu_t* apu, u16 address);
 void apu_poke(apu_t* apu, u16 address, u8 value);

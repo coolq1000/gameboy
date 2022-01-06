@@ -9,7 +9,6 @@
 class audio_stream : public sf::SoundStream
 {
     usize current_sample;
-    std::vector<sf::Int16> samples;
 
     gmb::apu* apu;
 

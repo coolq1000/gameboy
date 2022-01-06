@@ -35,7 +35,7 @@ namespace gmb
 
         void update()
         {
-            gmb_c::apu_update(&core_apu);
+//            gmb_c::apu_update(&core_apu);
         }
     };
 

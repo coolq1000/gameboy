@@ -2,13 +2,7 @@
 
 bool audio_stream::onGetData(Chunk& data)
 {
-    /* copy samples into buffer */
-    for (usize seek = 0; seek < apu->latency; seek++)
-    {
-        samples[seek] = apu->core_apu.buffer[seek];
-    }
-
-    data.samples = &samples[current_sample];
+    data.samples = &apu->core_apu.buffer[current_sample];
     data.sampleCount = apu->latency;
     return true;
 }
@@ -26,9 +20,6 @@ audio_stream::audio_stream(gmb::apu* apu)
 
 void audio_stream::load()
 {
-    /* fill with empty samples */
-    samples.resize(apu->latency);
-
     /* reset current sample to beginning */
     current_sample = 0;
 
