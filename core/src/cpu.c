@@ -211,6 +211,8 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x10: /* stop 0 */
+//        printf("attempted stop");
+//        exit(EXIT_FAILURE);
 		if (cpu->cgb.enabled)
 		{
 			if (bus->mmu->io.prepare_speed_switch & 0x1)
@@ -226,13 +228,13 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 				}
 
                 bus->mmu->io.prepare_speed_switch = 0;
-				cpu->stopped = true;
+//				cpu->stopped = true;
 			}
 		}
 		else
 		{
+            /* fixme: commented out for now... */
 			cpu->stopped = true;
-			cpu->halted = true;
 		}
 
 		/* reset div timer */
@@ -1325,7 +1327,12 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu_call(cpu, bus, 0x20);
 		break;
 	case 0xE8: /* add sp, r8 */
-		cpu_fault(cpu, bus, opc, "unimplemented opcode");
+        tmp8 = cpu->registers.sp;
+		cpu->registers.sp += imm8;
+        cpu->registers.flag_z = false;
+        cpu->registers.flag_n = false;
+        cpu->registers.flag_h = (cpu->registers.sp & 0xF) < (tmp8 & 0xF);
+        cpu->registers.flag_c = (cpu->registers.sp & 0xFF) < (tmp8 & 0xFF);
 		break;
 	case 0xE9: /* jp hl */
 		cpu->registers.pc = cpu->registers.hl;
@@ -1392,8 +1399,6 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_c = cpu->registers.a < imm8;
 		break;
 	case 0xFF: /* rst 38h */
-		printf("attempt to call rst 0x38\n");
-		exit(EXIT_FAILURE);
 		cpu_call(cpu, bus, 0x38);
 		break;
 	default:
@@ -1658,9 +1663,12 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x1E: /* rr (hl) */
-		// OPERATION
-		// FLAGS
-		cpu_fault(cpu, bus, opc, "unimplemented cb opcode");
+        tmp8 = bus_peek8(bus, cpu->registers.hl) & 0x1;
+        cpu->registers.hl = (bus_peek8(bus, cpu->registers.hl) >> 1) | (cpu->registers.flag_c << 7);
+        cpu->registers.flag_z = IS_ZERO(cpu->registers.hl);
+        cpu->registers.flag_n = false;
+        cpu->registers.flag_h = false;
+        cpu->registers.flag_c = tmp8;
 		break;
 	case 0x1F: /* rr a */
 		tmp8 = cpu->registers.a & 0x1;
@@ -2629,39 +2637,36 @@ void cpu_cycle(cpu_t* cpu, bus_t* bus)
 	u8 opcode = bus_peek8(bus, cpu->registers.pc);
 
 	/* execute */
-	// if (!cpu->halted)
+    if (!cpu->halted && !cpu->stopped)
 	{
 		cpu_execute(cpu, bus, opcode);
 	}
-	// else
-	// {
-	// 	cpu->clock.cycles++;
-	// }
+    else
+    {
+//        cpu->clock.cycles++;
+    }
 
 	/* decode pending interrupts */
 	u8 interrupt_flags = bus->mmu->memory.interrupt_enable & bus->mmu->io.irf;
 
 	/* check power mode */
-	// if (cpu->halted)
-	// {
-	// 	if (cpu->stopped)
-	// 	{
-	// 		/* only joypad interrupts wake the dmg */
-	// 		if (interrupt_flags & INT_JOYPAD_INDEX)
-	// 		{
-	// 			cpu->stopped = false;
-	// 			cpu->halted = false;
-	// 		}
-	// 	}
-	// 	else
-	// 	{
-	// 		/* any interrupts wakes the dmg */
-	// 		if (interrupt_flags)
-	// 		{
-	// 			cpu->halted = false;
-	// 		}
-	// 	}
-	// }
+    if (cpu->stopped)
+    {
+        /* only joypad interrupts wake the dmg */
+        if (interrupt_flags & INT_JOYPAD_INDEX)
+        {
+            cpu->stopped = false;
+            cpu->halted = false;
+        }
+    }
+    if (cpu->halted)
+    {
+        /* any interrupts wakes the dmg */
+        if (interrupt_flags)
+        {
+            cpu->halted = false;
+        }
+    }
 
     /* register ppu interrupts */
     if (cpu->interrupt.master)

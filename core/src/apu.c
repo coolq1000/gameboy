@@ -13,13 +13,13 @@ u8 duty_table[4][8] = {
 
 bool timer_tick(timer_t* timer)
 {
-    if (timer->counter)
+    if (--timer->counter == 0)
     {
-        timer->counter--;
-        return false;
+        timer_reset(timer);
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 void timer_reset(timer_t* timer)
@@ -38,19 +38,14 @@ void length_reset(length_t* length)
     timer_reset(&length->timer);
 }
 
-u8 duty_cycle(duty_t* duty, usize cycles)
+void duty_cycle(duty_t* duty, usize cycles)
 {
-    for (usize i = 0; i < cycles; i++)
+    if (timer_tick(&duty->timer))
     {
-        if (timer_tick(&duty->timer))
-        {
-            duty->timer.period = (2048 - duty->frequency) * 4;
-            duty->position++;
-            timer_reset(&duty->timer);
-        }
+        duty->timer.period = (2048 - duty->frequency) * 4;
+        duty->position++;
+        duty->state = duty_table[duty->pattern][duty->position % 0x8];
     }
-
-    return duty_table[duty->pattern][duty->position % 0x8];
 }
 
 void envelope_cycle(envelope_t* envelope)
@@ -67,7 +62,6 @@ void envelope_cycle(envelope_t* envelope)
                 envelope->volume -= envelope->direction;
                 envelope->enabled = false;
             }
-            timer_reset(&envelope->timer);
         }
     }
 }
@@ -77,28 +71,39 @@ void sweep_cycle(sweep_t* sweep)
 
 }
 
-u8 wave_cycle(wave_t* wave, bus_t* bus, usize cycles)
+void wave_cycle(wave_t* wave, bus_t* bus, usize cycles)
 {
-    u8 output = wave->output;
-    for (usize i = 0; i < cycles; i++)
+    if (timer_tick(&wave->timer))
     {
-        if (timer_tick(&wave->timer))
+        wave->position++;
+        wave->output = bus_peek8(bus, MMAP_IO_WAVE + ((wave->position & 0x1F) / 2));
+        if (wave->position % 2)
         {
-            wave->position++;
-            output = bus_peek8(bus, MMAP_IO_WAVE + ((wave->position & 0x1F) / 2));
-            if (wave->position % 2)
-            {
-                output &= 0xF;
-            }
-            else
-            {
-                output >>= 4;
-            }
-            timer_reset(&wave->timer);
+            wave->output &= 0xF;
+        }
+        else
+        {
+            wave->output >>= 4;
         }
     }
+}
 
-    return output;
+void noise_cycle(noise_t* noise, usize cycles)
+{
+    if (timer_tick(&noise->timer))
+    {
+        u8 lfsr_low = noise->lfsr & 0xFF;
+        u8 tmp = (lfsr_low & 0x1) ^ ((lfsr_low & 0x2) >> 1);
+        noise->lfsr >>= 0x1;
+        noise->lfsr &= 0xBFFF;
+        noise->lfsr |= tmp * 0x4000;
+        if (noise->width_mode)
+        {
+            noise->lfsr &= 0xFFBF;
+            noise->lfsr |= tmp * 0x40;
+        }
+        noise->state = !(noise->lfsr & 0x1);
+    }
 }
 
 void channel_length_cycle(channel_t* channel)
@@ -124,34 +129,40 @@ void apu_free(apu_t* apu)
 
 void apu_cycle(apu_t* apu, bus_t* bus, usize cycles)
 {
-    static usize flip = 0;
-    apu->clock += cycles;
-    apu->sample_clock += cycles;
-
-    if (apu->ch1.duty.enabled) apu->ch1.duty.state = duty_cycle(&apu->ch1.duty, cycles);
-    if (apu->ch2.duty.enabled) apu->ch2.duty.state = duty_cycle(&apu->ch2.duty, cycles);
-
-    apu->ch3.wave.output = wave_cycle(&apu->ch3.wave, bus, cycles);
-
-    if (apu->clock >= 0x4000)
+    if (apu->enabled)
     {
-        apu_frame_sequencer(apu);
-        apu->clock -= 0x4000;
-    }
+        apu->clock += cycles;
+        apu->sample_clock += cycles;
 
-    /* output sample to buffer */
-    usize cycles_per_sample = CPU_FREQUENCY / apu->sample_rate;
-    if (apu->sample_clock >= cycles_per_sample)
-    {
-        i16 sample = 0;
+        for (usize i = 0; i < cycles; i++)
+        {
+            if (apu->ch1.duty.enabled) duty_cycle(&apu->ch1.duty, cycles);
+            if (apu->ch2.duty.enabled) duty_cycle(&apu->ch2.duty, cycles);
+            wave_cycle(&apu->ch3.wave, bus, cycles);
+            noise_cycle(&apu->ch4.noise, cycles);
+        }
 
-        sample += apu_ch1_sample(apu);
-        sample += apu_ch2_sample(apu);
-        sample += apu_ch3_sample(apu);
+        if (apu->clock >= 0x4000)
+        {
+            apu_frame_sequencer(apu);
+            apu->clock -= 0x4000;
+        }
+
+        /* output sample to buffer */
+        usize cycles_per_sample = CPU_FREQUENCY / apu->sample_rate;
+        if (apu->sample_clock >= cycles_per_sample)
+        {
+            i16 sample = 0;
+
+            sample += apu_ch1_sample(apu);
+            sample += apu_ch2_sample(apu);
+            sample += apu_ch3_sample(apu);
+            sample += apu_ch4_sample(apu);
 
 //        sample = ((flip++ % 200) > 100) * 10000;
-        apu->buffer[apu->sample++ % apu->latency] = sample;
-        apu->sample_clock -= cycles_per_sample;
+            apu->buffer[apu->sample++ % apu->latency] = sample;
+            apu->sample_clock -= cycles_per_sample;
+        }
     }
 }
 
@@ -189,6 +200,9 @@ void apu_ch1_trigger(apu_t* apu)
     apu->ch1.duty.enabled = true;
     if (!apu->ch1.length.timer.counter) apu->ch1.length.timer.counter = 64;
 
+    timer_reset(&apu->ch1.duty.timer);
+    timer_reset(&apu->ch1.envelope.timer);
+
     apu->ch1.envelope.enabled = apu->ch1.envelope.timer.period > 0;
     apu->ch1.envelope.volume = apu->ch1.envelope.start_volume;
 
@@ -200,6 +214,9 @@ void apu_ch2_trigger(apu_t* apu)
     apu->ch2.enabled = true;
     apu->ch2.duty.enabled = true;
     if (!apu->ch2.length.timer.counter) apu->ch2.length.timer.counter = 64;
+
+    timer_reset(&apu->ch2.duty.timer);
+    timer_reset(&apu->ch2.envelope.timer);
 
     apu->ch2.envelope.enabled = apu->ch2.envelope.timer.period > 0;
     apu->ch2.envelope.volume = apu->ch2.envelope.start_volume;
@@ -213,7 +230,24 @@ void apu_ch3_trigger(apu_t* apu)
     if (!apu->ch3.length.timer.counter) apu->ch3.length.timer.counter = 256;
     apu->ch3.wave.position = 0;
 
+    timer_reset(&apu->ch3.wave.timer);
+
     if (!apu->ch3.dac) apu->ch3.enabled = false;
+}
+
+void apu_ch4_trigger(apu_t* apu)
+{
+    apu->ch4.enabled = true;
+
+    timer_reset(&apu->ch4.noise.timer);
+    timer_reset(&apu->ch4.envelope.timer);
+
+    apu->ch4.envelope.enabled = apu->ch4.envelope.timer.period > 0;
+    apu->ch4.envelope.volume = apu->ch4.envelope.start_volume;
+
+    apu->ch4.noise.lfsr = 0xFFFF;
+
+    if (!apu->ch4.dac) apu->ch4.enabled = false;
 }
 
 i16 apu_ch1_sample(apu_t* apu)
@@ -259,6 +293,22 @@ i16 apu_ch3_sample(apu_t* apu)
     if (apu->ch3.enabled && apu->ch3.wave.shift)
     {
         sample += AMP_BASE * (apu->ch3.wave.output >> (apu->ch3.wave.shift - 1));
+    }
+
+    return sample;
+}
+
+i16 apu_ch4_sample(apu_t* apu)
+{
+    i16 sample = 0;
+
+    if (apu->ch4.dac)
+    {
+        sample -= AMP_CHL / 2;
+    }
+    if (apu->ch4.enabled)
+    {
+        sample += AMP_BASE * apu->ch4.noise.state * apu->ch4.envelope.volume;
     }
 
     return sample;
@@ -320,7 +370,7 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
         case MMAP_IO_NR12:
             apu->nr12 = value;
             apu->ch1.dac = value & 0xF8;
-            apu->ch1.envelope.start_volume = (value & 0xF0) >> 4;
+            apu->ch1.envelope.start_volume = (value & 0xF0) >> 0x4;
             apu->ch1.envelope.direction = (value & 0x8) ? 1 : -1;
             apu->ch1.envelope.timer.period = value & 0x7;
             if (!apu->ch1.dac) apu->ch1.enabled = false;
@@ -348,7 +398,7 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
             apu->nr22 = value;
             apu->ch2.dac = value & 0xF8;
             if (!apu->ch2.dac) apu->ch2.enabled = false;
-            apu->ch2.envelope.start_volume = (value & 0xF0) >> 4;
+            apu->ch2.envelope.start_volume = (value & 0xF0) >> 0x4;
             apu->ch2.envelope.direction = (value & 0x8) ? 1 : -1;
             apu->ch2.envelope.timer.period = value & 0x7;
             break;
@@ -395,15 +445,28 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
             break; /* unused */
         case MMAP_IO_NR41:
             apu->nr41 = value;
+            apu->ch4.length.timer.period = 64 - (value & 0x3F);
             break;
         case MMAP_IO_NR42:
             apu->nr42 = value;
+            apu->ch4.dac = value & 0xF8;
+            if (!apu->ch4.dac) apu->ch4.enabled = false;
+            apu->ch4.envelope.start_volume = (value & 0xF0) >> 0x4;
+            apu->ch4.envelope.direction = (value & 0x8) ? 1 : -1;
+            apu->ch4.envelope.timer.period = value & 0x7;
             break;
         case MMAP_IO_NR43:
             apu->nr43 = value;
+            apu->ch4.noise.shift = (value & 0xF0) >> 0x4;
+            apu->ch4.noise.width_mode = value & 0x8;
+            apu->ch4.noise.timer.period = (value & 0x7) << 4;
+            if (apu->ch4.noise.timer.period == 0 ) apu->ch4.noise.timer.period = 8;
+            apu->ch4.noise.timer.period <<= apu->ch4.noise.shift;
             break;
         case MMAP_IO_NR44:
             apu->nr44 = value;
+            apu->ch4.length.enabled = value & 0x40;
+            if (value & 0x80) apu_ch4_trigger(apu);
             break;
         case MMAP_IO_NR50:
             apu->nr50 = value;

@@ -74,7 +74,7 @@ typedef struct duty
     bool enabled, state;
 } duty_t;
 
-u8 duty_cycle(duty_t* duty, usize cycles);
+void duty_cycle(duty_t* duty, usize cycles);
 
 typedef struct envelope
 {
@@ -104,7 +104,18 @@ typedef struct wave
     u8 output;
 } wave_t;
 
-u8 wave_cycle(wave_t* wave, bus_t* bus, usize cycles);
+void wave_cycle(wave_t* wave, bus_t* bus, usize cycles);
+
+typedef struct noise
+{
+    timer_t timer;
+    u8 shift;
+    bool width_mode;
+    u16 lfsr;
+    bool state;
+} noise_t;
+
+void noise_cycle(noise_t* noise, usize cycles);
 
 typedef struct channel
 {
@@ -115,6 +126,7 @@ typedef struct channel
     envelope_t envelope;
     sweep_t sweep;
     wave_t wave;
+    noise_t noise;
 } channel_t;
 
 void channel_length_cycle(channel_t* channel);
@@ -161,6 +173,7 @@ void apu_ch3_trigger(apu_t* apu);
 i16 apu_ch1_sample(apu_t* apu);
 i16 apu_ch2_sample(apu_t* apu);
 i16 apu_ch3_sample(apu_t* apu);
+i16 apu_ch4_sample(apu_t* apu);
 
 u8 apu_peek(apu_t* apu, u16 address);
 void apu_poke(apu_t* apu, u16 address, u8 value);
