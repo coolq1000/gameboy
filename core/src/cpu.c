@@ -6,7 +6,7 @@
 #include "core/mmu.h"
 #include "core/ppu.h"
 
-usize tac_cycles[4] = {1024, 16, 64, 256 };
+usize tac_cycles[4] = { 1024, 16, 64, 256 };
 
 void cpu_init(cpu_t* cpu, bool is_cgb)
 {
@@ -2721,7 +2721,7 @@ void cpu_cycle(cpu_t* cpu, bus_t* bus)
     {
         cpu->clock.tima_cycles += cpu->clock.cycles;
 
-        usize tac_rate = tac_cycles[bus->mmu->io.tac & 0x3] * (cpu->cgb.enabled * 2);
+        usize tac_rate = tac_cycles[bus->mmu->io.tac & 0x3] * (cpu->cgb.enabled ? 2 : 1);
         if (cpu->clock.tima_cycles > tac_rate)
         {
             cpu->clock.tima_cycles -= tac_rate;

@@ -12,8 +12,8 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "../../res/roms/tetris.gb";
-const char* save_path = "../../res/roms/tetris.sav";
+const char* cart_path = "../../res/roms/kirby.gb";
+const char* save_path = "../../res/roms/kirby.sav";
 //  const char* save_path = "";
 
 namespace app
