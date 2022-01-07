@@ -5,22 +5,23 @@
 #include <SFML/Audio.hpp>
 #include "core/util.h"
 #include "core/dmg.hpp"
-#include <al/al.h>
+#define MA_NO_DECODING
+#define MA_NO_ENCODING
+#include <miniaudio/miniaudio.h>
 
-class audio_stream : public sf::SoundStream
+#define AUDIO_FORMAT ma_format_s16
+#define AUDIO_CHANNELS 1
+
+class audio
 {
-    usize current_sample;
-
-    gmb::apu* apu;
-
-    virtual bool onGetData(Chunk& data);
-    virtual void onSeek(sf::Time timeOffset);
+    ma_device device;
 
 public:
 
-    audio_stream(gmb::apu* apu);
+    audio(gmb::apu& _apu);
+    ~audio();
 
-    void load();
+    static void write(ma_device* device, void* output, const void* input, ma_uint32 frame_count);
 };
 
 #endif

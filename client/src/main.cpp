@@ -28,7 +28,7 @@ namespace app
     gmb::rom rom(cart_path, save_path);
     gmb::dmg gameboy(rom, true, 44100, 2048);
 
-    audio_stream as(&gameboy.apu_);
+    audio as(gameboy.apu_);
 
 	void draw();
 
@@ -42,9 +42,6 @@ namespace app
 		lcd_pixels = std::unique_ptr<uint32_t>(new uint32_t[lcd_width * lcd_height]());
 
 		window.setFramerateLimit(60);
-
-        as.setLoop(true);
-        as.play();
 	}
 
 	void stop()

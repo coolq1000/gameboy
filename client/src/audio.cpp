@@ -1,28 +1,24 @@
 #include "audio.hpp"
 
-bool audio_stream::onGetData(Chunk& data)
+audio::audio(gmb::apu& _apu)
 {
-    data.samples = &apu->core_apu.buffer[current_sample];
-    data.sampleCount = apu->latency;
-    return true;
+    ma_device_config config = ma_device_config_init(ma_device_type_playback);
+    config.playback.format = AUDIO_FORMAT;
+    config.playback.channels = AUDIO_CHANNELS;
+    config.sampleRate = _apu.sample_rate;
+    config.dataCallback = write;
+    config.pUserData = &_apu;
+
+    ma_device_init(NULL, &config, &device);
+    ma_device_start(&device);
 }
 
-void audio_stream::onSeek(sf::Time timeOffset)
+audio::~audio()
 {
-    current_sample = static_cast<usize>(timeOffset.asSeconds() * getSampleRate() * getChannelCount());
+    ma_device_uninit(&device);
 }
 
-audio_stream::audio_stream(gmb::apu* apu)
+void audio::write(ma_device* device, void* output, const void* input, ma_uint32 frame_count)
 {
-    this->apu = apu;
-    load();
-}
-
-void audio_stream::load()
-{
-    /* reset current sample to beginning */
-    current_sample = 0;
-
-    /* call back to the super (sf::SoundStream) for initialization */
-    initialize(1, apu->sample_rate);
+    printf("write\n");
 }

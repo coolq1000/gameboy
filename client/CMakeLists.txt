@@ -14,13 +14,14 @@ if (APPLE)
     set(CMAKE_WARN_DEPRECATED FALSE)
     set(BUILD_SHARED_LIBS TRUE)
 endif()
+
 add_subdirectory(deps/sfml)
-add_subdirectory(deps/mojoal)
+add_subdirectory(deps/miniaudio)
 
 add_executable(client ${SOURCE})
 
-target_include_directories(client PRIVATE include deps/mojoal/include deps/sfml/include)
-target_link_libraries(client sfml-graphics sfml-audio)
+target_include_directories(client PRIVATE include deps/miniaudio/include deps/sfml/include)
+target_link_libraries(client sfml-graphics miniaudio)
 
 target_compile_options(client PRIVATE -Wno-switch)
 
