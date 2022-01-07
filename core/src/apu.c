@@ -27,22 +27,12 @@ void timer_reset(timer_t* timer)
     timer->counter = timer->period;
 }
 
-bool length_tick(length_t* length)
+void duty_cycle(duty_t* duty)
 {
-    if (length->enabled) return timer_tick(&length->timer);
-    return false;
-}
+    duty->timer.period = (2048 - duty->frequency) * 4;
 
-void length_reset(length_t* length)
-{
-    timer_reset(&length->timer);
-}
-
-void duty_cycle(duty_t* duty, usize cycles)
-{
     if (timer_tick(&duty->timer))
     {
-        duty->timer.period = (2048 - duty->frequency) * 4;
         duty->position++;
         duty->state = duty_table[duty->pattern][duty->position % 0x8];
     }
@@ -71,7 +61,7 @@ void sweep_cycle(sweep_t* sweep)
 
 }
 
-void wave_cycle(wave_t* wave, bus_t* bus, usize cycles)
+void wave_cycle(wave_t* wave, bus_t* bus)
 {
     if (timer_tick(&wave->timer))
     {
@@ -88,7 +78,7 @@ void wave_cycle(wave_t* wave, bus_t* bus, usize cycles)
     }
 }
 
-void noise_cycle(noise_t* noise, usize cycles)
+void noise_cycle(noise_t* noise)
 {
     if (timer_tick(&noise->timer))
     {
@@ -108,7 +98,8 @@ void noise_cycle(noise_t* noise, usize cycles)
 
 void channel_length_cycle(channel_t* channel)
 {
-    if (length_tick(&channel->length)) channel->enabled = false;
+    channel->length.timer.counter--;
+    if (channel->length.enabled && channel->length.timer.counter == 0) channel->enabled = false;
 }
 
 void apu_init(apu_t* apu, usize sample_rate, usize latency)
@@ -116,15 +107,18 @@ void apu_init(apu_t* apu, usize sample_rate, usize latency)
     *apu = (apu_t){ 0 };
     apu->sample_rate = sample_rate;
     apu->latency = latency;
-    apu->buffer = malloc(sizeof(i16) * latency);
+    apu->buffer1 = malloc(sizeof(i16) * latency);
+    apu->buffer2 = malloc(sizeof(i16) * latency);
 
     /* empty mixing buffer */
-    memset(apu->buffer, 0, sizeof(i16) * latency);
+    memset(apu->buffer1, 0, sizeof(i16) * latency);
+    memset(apu->buffer2, 0, sizeof(i16) * latency);
 }
 
 void apu_free(apu_t* apu)
 {
-    free(apu->buffer);
+    free(apu->buffer1);
+    free(apu->buffer2);
 }
 
 void apu_cycle(apu_t* apu, bus_t* bus, usize cycles)
@@ -136,17 +130,11 @@ void apu_cycle(apu_t* apu, bus_t* bus, usize cycles)
 
         for (usize i = 0; i < cycles; i++)
         {
-            if (apu->ch1.duty.enabled) duty_cycle(&apu->ch1.duty, cycles);
-            if (apu->ch2.duty.enabled) duty_cycle(&apu->ch2.duty, cycles);
-            wave_cycle(&apu->ch3.wave, bus, cycles);
-            noise_cycle(&apu->ch4.noise, cycles);
+            if (apu->ch1.duty.enabled) duty_cycle(&apu->ch1.duty);
+            if (apu->ch2.duty.enabled) duty_cycle(&apu->ch2.duty);
+            wave_cycle(&apu->ch3.wave, bus);
+            noise_cycle(&apu->ch4.noise);
         }
-
-//        if (apu->clock >= 0x4000)
-//        {
-//            apu_frame_sequencer(apu);
-//            apu->clock -= 0x4000;
-//        }
 
         /* output sample to buffer */
         usize cycles_per_sample = CPU_FREQUENCY / apu->sample_rate;
@@ -159,7 +147,10 @@ void apu_cycle(apu_t* apu, bus_t* bus, usize cycles)
             sample += apu_ch3_sample(apu);
             sample += apu_ch4_sample(apu);
 
-            apu->buffer[apu->sample++ % apu->latency] = sample;
+            (apu->flip ? apu->buffer2 : apu->buffer1)[apu->sample++ % apu->latency] = sample;
+
+            apu->flip = (apu->sample / apu->latency) % 2;
+
             apu->sample_clock -= cycles_per_sample;
         }
     }
@@ -308,6 +299,7 @@ i16 apu_ch4_sample(apu_t* apu)
     if (apu->ch4.enabled)
     {
         sample += AMP_BASE * apu->ch4.noise.state * apu->ch4.envelope.volume;
+//        printf("%d : %d\n", AMP_BASE * apu->ch4.noise.state * apu->ch4.envelope.volume, apu->ch4.envelope.enabled);
     }
 
     return sample;

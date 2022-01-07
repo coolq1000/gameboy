@@ -71,7 +71,7 @@ u8 ppu_convert_dmg_palette(u8 palette, u8 color_id);
 u16 ppu_convert_cgb_palette(bus_t* bus, u8* palette, u8 palette_id, u8 color_id);
 
 bg_t ppu_render_background(ppu_t* ppu, bus_t* bus, u8 x, u8 y, u8 is_window);
-void ppu_render_sprites(ppu_t* ppu, bus_t* bus, usize x, usize y);
+void ppu_render_sprites(ppu_t* ppu, bus_t* bus, usize x, usize y, u8 bg_tile);
 void ppu_render_line(ppu_t* ppu, bus_t* bus);
 
 #endif

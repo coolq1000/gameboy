@@ -16,12 +16,13 @@ if (APPLE)
 endif()
 
 add_subdirectory(deps/sfml)
+add_subdirectory(deps/sdl2)
 add_subdirectory(deps/miniaudio)
 
 add_executable(client ${SOURCE})
 
-target_include_directories(client PRIVATE include deps/miniaudio/include deps/sfml/include)
-target_link_libraries(client sfml-graphics miniaudio)
+target_include_directories(client PRIVATE include deps/miniaudio/include deps/sdl2 deps/sfml/include)
+target_link_libraries(client sfml-graphics miniaudio SDL2)
 
 target_compile_options(client PRIVATE -Wno-switch)
 

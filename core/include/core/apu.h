@@ -2,6 +2,7 @@
 #ifndef APU_H
 #define APU_H
 
+#include <stdio.h>
 #include "bus.h"
 #include "util.h"
 
@@ -59,9 +60,6 @@ typedef struct length
     bool enabled;
 } length_t;
 
-bool length_tick(length_t* length);
-void length_reset(length_t* length);
-
 /*
  * duty - contains a timer which ticks at a frequency, outputs from the duty table
  */
@@ -74,7 +72,7 @@ typedef struct duty
     bool enabled, state;
 } duty_t;
 
-void duty_cycle(duty_t* duty, usize cycles);
+void duty_cycle(duty_t* duty);
 
 typedef struct envelope
 {
@@ -104,7 +102,7 @@ typedef struct wave
     u8 output;
 } wave_t;
 
-void wave_cycle(wave_t* wave, bus_t* bus, usize cycles);
+void wave_cycle(wave_t* wave, bus_t* bus);
 
 typedef struct noise
 {
@@ -115,7 +113,7 @@ typedef struct noise
     bool state;
 } noise_t;
 
-void noise_cycle(noise_t* noise, usize cycles);
+void noise_cycle(noise_t* noise);
 
 typedef struct channel
 {
@@ -157,7 +155,9 @@ typedef struct apu
 
     /* mixing */
     usize sample;
-    i16* buffer;
+    i16* buffer1;
+    i16* buffer2;
+    bool flip;
 } apu_t;
 
 void apu_init(apu_t* apu, usize sample_rate, usize latency);

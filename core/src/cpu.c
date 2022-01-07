@@ -2643,12 +2643,14 @@ void cpu_cycle(cpu_t* cpu, bus_t* bus)
 	}
     else
     {
-        cpu->clock.cycles++;
+//        cpu->clock.cycles++;
     }
 
-    cpu_cycle_clock(cpu, bus);
-    if (bus->mmu->io.current_speed) cpu_cycle_clock(cpu, bus);
-
+    for (usize i = 0; i < cpu->clock.cycles; i++)
+    {
+        cpu_cycle_clock(cpu, bus);
+        if (bus->mmu->io.current_speed) cpu_cycle_clock(cpu, bus);
+    }
 }
 
 void cpu_cycle_interrupt(cpu_t* cpu, bus_t* bus)

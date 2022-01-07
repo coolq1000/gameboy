@@ -12,7 +12,7 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "../../res/roms/ladx.gbc";
+const char* cart_path = "../../res/roms/zs.gbc";
 //const char* save_path = "../../res/roms/zs.sav";
   const char* save_path = "";
 
@@ -26,7 +26,7 @@ namespace app
 	std::unique_ptr<uint32_t> lcd_pixels;
 
     gmb::rom rom(cart_path, save_path);
-    gmb::dmg gameboy(rom, true, 44100, 2048);
+    gmb::dmg gameboy(rom, true, 48000, 1024);
 
     audio as(gameboy.apu_);
 
@@ -71,7 +71,6 @@ namespace app
 		{
             gameboy.cycle();
             if ((gameboy.core_dmg.cpu.interrupt.master && gameboy.core_dmg.ppu.draw) || i % 1000000 == 0) draw();
-
             i++;
 		}
 	}
@@ -159,6 +158,7 @@ namespace app
 				// lcd_pixels.get()[x + (y * 160)] = raw_pixel;
 
 				const static float saturation = 0.95f;
+                const static float brightness = 0.05f;
 				const static float gamma = 1.6f;
 
 				uint8_t a = 0xFF;
@@ -172,9 +172,9 @@ namespace app
 
 				float luma = (r_f + g_f + b_f) / 3.0f;
 
-				r_f = lerp(luma, r_f, saturation);
-				g_f = lerp(luma, g_f, saturation);
-				b_f = lerp(luma, b_f, saturation);
+				r_f = lerp(luma, r_f, saturation) + (luma ? brightness : 0.0f);
+				g_f = lerp(luma, g_f, saturation) + (luma ? brightness : 0.0f);
+				b_f = lerp(luma, b_f, saturation) + (luma ? brightness : 0.0f);
 
 				r_f = std::pow(r_f, 1.0f / gamma);
 				g_f = std::pow(g_f, 1.0f / gamma);

@@ -3,29 +3,43 @@
 
 audio::audio(gmb::apu& _apu) : apu(_apu)
 {
-    ma_device_config config = ma_device_config_init(ma_device_type_playback);
-    config.playback.format = AUDIO_FORMAT;
-    config.playback.channels = AUDIO_CHANNELS;
-    config.sampleRate = _apu.sample_rate;
-    config.dataCallback = write;
-    config.pUserData = this;
+    SDL_Init(SDL_INIT_AUDIO);
 
-    ma_device_init(NULL, &config, &device);
-    ma_device_start(&device);
+    SDL_AudioSpec spec;
+    SDL_zero(spec);
+    spec.freq = _apu.sample_rate;
+    spec.format = AUDIO_FORMAT;
+    spec.channels = AUDIO_CHANNELS;
+    spec.samples = _apu.latency;
+    spec.userdata = &_apu;
+    spec.callback = write;
+
+    device = SDL_OpenAudioDevice(NULL, 0, &spec, NULL, 0);
+    SDL_PauseAudioDevice(device, 0);
 }
 
 audio::~audio()
 {
-    ma_device_uninit(&device);
+    SDL_CloseAudioDevice(device);
 }
 
-void audio::write(ma_device* device, void* output, const void* input, ma_uint32 frame_count)
+void audio::write(void *userdata, Uint8* stream, int len)
 {
-    auto* _audio = reinterpret_cast<audio*>(device->pUserData);
+    auto* apu = reinterpret_cast<gmb::apu*>(userdata);
 
-    for (usize i = 0; i < frame_count; i++)
+    for (usize i = 0; i < len / sizeof(i16); i++)
     {
-        i16 sample = ((i16*)_audio->apu.core_apu.buffer)[i];
-        *((i16*)(output) + i) = sample;
+        i16 sample = (apu->core_apu.flip ? apu->core_apu.buffer1 : apu->core_apu.buffer2)[i];
+        *(reinterpret_cast<i16*>(stream) + i) = sample;
     }
+}
+
+void audio::queue(i16 sample)
+{
+    SDL_QueueAudio(device, &sample, sizeof(i16));
+}
+
+u32 audio::queued()
+{
+    return SDL_GetQueuedAudioSize(device);
 }

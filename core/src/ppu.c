@@ -264,7 +264,7 @@ bg_t ppu_render_background(ppu_t* ppu, bus_t* bus, u8 x, u8 y, u8 is_window)
     return pixel;
 }
 
-void ppu_render_sprites(ppu_t* ppu, bus_t* bus, usize x, usize y)
+void ppu_render_sprites(ppu_t* ppu, bus_t* bus, usize x, usize y, u8 bg_tile)
 {
 	u8 sprite_height = (bus->mmu->io.lcdc & 0x4) ? 16 : 8;
 
@@ -305,7 +305,17 @@ void ppu_render_sprites(ppu_t* ppu, bus_t* bus, usize x, usize y)
 					if (!ppu->is_cgb) palette_pixel = ppu_apply_dmg_palette(ppu_palette, ppu_convert_dmg_palette(palette, pixel));
 					else palette_pixel = ppu_apply_cgb_palette(ppu_convert_cgb_palette(bus, bus->mmu->palette.foreground, cgb_palette, pixel));
 
-					if (pixel) ppu_set_pixel(ppu, x, y, palette_pixel);
+					if (pixel)
+                    {
+                        if (sprite_tile_attributes & BIT(7))
+                        {
+                            if (!bg_tile) ppu_set_pixel(ppu, x, y, palette_pixel);
+                        }
+                        else
+                        {
+                            ppu_set_pixel(ppu, x, y, palette_pixel);
+                        }
+                    }
 				}
 
 				// max_draw--; // todo: figure out maximum draw
@@ -354,7 +364,7 @@ void ppu_render_line(ppu_t* ppu, bus_t* bus)
 
         if (sprites_enable && ((!(bg_pixel.attributes & 0x80)) || (!bg_pixel.tile))) // render sprites
         {
-            ppu_render_sprites(ppu, bus, x, ppu->line);
+            ppu_render_sprites(ppu, bus, x, ppu->line, bg_pixel.tile);
         }
 
 //			 ppu_debug_bg(ppu, bus, x, ppu->line);
