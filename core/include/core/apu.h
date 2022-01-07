@@ -86,12 +86,16 @@ void envelope_cycle(envelope_t* envelope);
 
 typedef struct sweep
 {
+    timer_t timer;
     u16 frequency;
     u8 shift;
-    bool decreasing;
+    bool enabled, decreasing, calculated;
 } sweep_t;
 
-void sweep_cycle(sweep_t* sweep);
+typedef struct channel channel_t;
+
+void sweep_cycle(sweep_t* sweep, duty_t* duty, channel_t* channel);
+u16 sweep_frequency_calc(sweep_t* sweep);
 
 typedef struct wave
 {

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(SOURCE
     src/main.cpp
     src/audio.cpp include/audio.hpp
-)
+    src/window.cpp include/window.hpp)
 
 set(BUILD_SHARED_LIBS FALSE)
 if (APPLE)

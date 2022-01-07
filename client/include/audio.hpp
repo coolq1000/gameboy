@@ -11,9 +11,10 @@
 
 class audio
 {
-public:
 
     SDL_AudioDeviceID device;
+
+public:
 
     gmb::apu apu;
 

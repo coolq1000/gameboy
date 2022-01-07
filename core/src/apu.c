@@ -56,9 +56,34 @@ void envelope_cycle(envelope_t* envelope)
     }
 }
 
-void sweep_cycle(sweep_t* sweep)
+void sweep_cycle(sweep_t* sweep, duty_t* duty, channel_t* channel)
 {
+    if (sweep->enabled)
+    {
+        if (timer_tick(&sweep->timer) && sweep->timer.period)
+        {
+            u16 sweep_frequency = sweep_frequency_calc(sweep);
+            if (sweep->shift && sweep_frequency < 2048)
+            {
+                sweep->frequency = sweep_frequency;
+                duty->frequency = sweep_frequency;
+            }
 
+            sweep_frequency = sweep_frequency_calc(sweep);
+            if (sweep_frequency >= 2048) channel->enabled = false;
+        }
+    }
+}
+
+u16 sweep_frequency_calc(sweep_t* sweep)
+{
+    if (sweep->decreasing)
+    {
+        sweep->calculated = true;
+        return sweep->frequency - (sweep->frequency >> sweep->shift);
+    }
+
+    return sweep->frequency + (sweep->frequency >> sweep->shift);
 }
 
 void wave_cycle(wave_t* wave, bus_t* bus)
@@ -170,7 +195,7 @@ void apu_frame_sequencer(apu_t* apu)
     /* sweep clock */
     if (apu->frame_sequence == 0x2 || apu->frame_sequence == 0x6)
     {
-        sweep_cycle(&apu->ch1.sweep);
+        if (apu->ch3.enabled) sweep_cycle(&apu->ch1.sweep, &apu->ch1.duty, &apu->ch1);
     }
 
     /* envelope clock */
@@ -192,9 +217,20 @@ void apu_ch1_trigger(apu_t* apu)
 
     timer_reset(&apu->ch1.duty.timer);
     timer_reset(&apu->ch1.envelope.timer);
+    timer_reset(&apu->ch1.sweep.timer);
 
     apu->ch1.envelope.enabled = apu->ch1.envelope.timer.period > 0;
     apu->ch1.envelope.volume = apu->ch1.envelope.start_volume;
+
+    apu->ch1.sweep.enabled = apu->ch1.sweep.shift || apu->ch1.sweep.timer.period;
+    apu->ch1.sweep.frequency = apu->ch1.duty.frequency;
+    apu->ch1.sweep.calculated = false;
+
+    if (apu->ch1.sweep.shift)
+    {
+        u16 sweep_frequency = sweep_frequency_calc(&apu->ch1.sweep);
+        if (sweep_frequency >= 2048) apu->ch1.enabled = false;
+    }
 
     if (!apu->ch1.dac) apu->ch1.enabled = false;
 }
@@ -299,7 +335,6 @@ i16 apu_ch4_sample(apu_t* apu)
     if (apu->ch4.enabled)
     {
         sample += AMP_BASE * apu->ch4.noise.state * apu->ch4.envelope.volume;
-//        printf("%d : %d\n", AMP_BASE * apu->ch4.noise.state * apu->ch4.envelope.volume, apu->ch4.envelope.enabled);
     }
 
     return sample;
@@ -351,7 +386,15 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
     {
         case MMAP_IO_NR10:
             apu->nr10 = value;
-//            apu->ch1.sweep
+            apu->ch1.sweep.timer.period = (value & 0x70) >> 4;
+//            if (!apu->ch1.sweep.timer.period) apu->ch1.sweep.timer.period = 8; /* this will always make it sweep? */
+            if (value & BIT(3) && apu->ch1.sweep.decreasing && apu->ch1.sweep.calculated)
+            {
+                apu->ch1.enabled = false;
+            }
+
+            apu->ch1.sweep.decreasing = value & BIT(3);
+            apu->ch1.sweep.shift = value & 0x7;
             break;
         case MMAP_IO_NR11:
             apu->nr11 = value;

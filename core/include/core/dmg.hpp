@@ -49,6 +49,16 @@ namespace gmb
         {}
     };
 
+    class ppu
+    {
+    public:
+
+        gmb_c::ppu_t& core_ppu;
+
+        ppu(gmb_c::ppu_t& _ppu) : core_ppu(_ppu)
+        {}
+    };
+
     class rom
     {
         const std::string& cart_path, save_path;
@@ -81,8 +91,9 @@ namespace gmb
 
         apu apu_;
         mmu mmu_;
+        ppu ppu_;
 
-        dmg(rom& _rom, bool _is_cgb, usize _sample_rate, usize _latency) : apu_(core_dmg.apu), mmu_(core_dmg.mmu)
+        dmg(rom& _rom, bool _is_cgb, usize _sample_rate, usize _latency) : apu_(core_dmg.apu), mmu_(core_dmg.mmu), ppu_(core_dmg.ppu)
         {
             gmb_c::dmg_init(&core_dmg, &_rom.core_rom, _is_cgb, _sample_rate, _latency);
         }
