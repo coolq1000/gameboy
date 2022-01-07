@@ -18,6 +18,8 @@ class audio
 
 public:
 
+    gmb::apu apu;
+
     audio(gmb::apu& _apu);
     ~audio();
 

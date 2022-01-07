@@ -31,7 +31,7 @@
 
 #define MMAP_IO_WAVE 0xFF30
 
-#define CPU_FREQUENCY 4190000
+#define CPU_FREQUENCY 4194304
 
 #define AMP_MAX     (I16_MAX)
 #define AMP_CHL     (AMP_MAX / 0x04)

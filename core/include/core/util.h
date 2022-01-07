@@ -36,4 +36,6 @@ typedef int32_t i32;
 typedef int64_t i64;
 typedef ptrdiff_t isize;
 
+typedef float f32;
+
 #endif

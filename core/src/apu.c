@@ -159,7 +159,6 @@ void apu_cycle(apu_t* apu, bus_t* bus, usize cycles)
             sample += apu_ch3_sample(apu);
             sample += apu_ch4_sample(apu);
 
-//        sample = ((flip++ % 200) > 100) * 10000;
             apu->buffer[apu->sample++ % apu->latency] = sample;
             apu->sample_clock -= cycles_per_sample;
         }
