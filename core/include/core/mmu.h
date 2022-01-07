@@ -80,7 +80,7 @@ typedef struct mmu
     struct
     {
         u8 joyp;
-        u8 div;
+        u16 div; /* read and written as u8, but we need the extra byte for incrementing */
         u8 tima;
         u8 tma;
         u8 tac;

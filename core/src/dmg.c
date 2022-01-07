@@ -22,6 +22,5 @@ void dmg_cycle(dmg_t* dmg)
 {
 	cpu_cycle(&dmg->cpu, &dmg->bus);
     ppu_cycle(&dmg->ppu, &dmg->bus, dmg->cpu.clock.cycles);
-
     apu_cycle(&dmg->apu, &dmg->bus, dmg->cpu.clock.cycles);
 }

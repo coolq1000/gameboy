@@ -149,8 +149,8 @@ u8* mmu_map(mmu_t* mmu, u16 address)
                 mmu->io.joyp = input | original;
                 return &mmu->io.joyp;
             }
-			case MMAP_IO_DIV:
-				return &mmu->io.div;
+//			case MMAP_IO_DIV: /* handled by mmu_peek & mmu_poke */
+//				return &mmu->io.div;
 			case MMAP_IO_TIMA:
 				return &mmu->io.tima;
 			case MMAP_IO_TMA:
@@ -232,6 +232,8 @@ u8 mmu_peek(mmu_t* mmu, u16 address)
 {
 	switch (address)
 	{
+    case MMAP_IO_DIV:
+        return mmu->io.div >> 8;
 	case MMAP_IO_BGPD:
 		return mmu->palette.background[mmu->io.bgpi & 0x3F];
 	case MMAP_IO_OBPD:
@@ -252,6 +254,9 @@ void mmu_poke(mmu_t* mmu, u16 address, u8 value)
 			mmu->io.joyp = (value & 0x30) | (input & 0xCF); // only permit writing to bits 4 & 5
 			return;
 		}
+        case MMAP_IO_DIV:
+            mmu->io.div = 0;
+            return;
 		case MMAP_IO_DMA:
 			for (u16 copy_addr = value << 8; (copy_addr & 0xFF) < 0x9F; copy_addr++)
 			{

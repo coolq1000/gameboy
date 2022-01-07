@@ -56,8 +56,6 @@ typedef struct cpu
 	struct
 	{
 		u8 cycles;
-		u16 div_diff;
-		usize tima_cycles;
 	} clock;
 	struct
 	{
@@ -81,12 +79,16 @@ void cpu_fault(cpu_t* cpu, bus_t* bus, opc_t* opc, const char* message);
 void cpu_trace(cpu_t* cpu, opc_t* opc);
 void cpu_stack_trace(cpu_t* cpu, bus_t* bus);
 void cpu_dump(cpu_t* cpu);
+
 void cpu_call(cpu_t* cpu, bus_t* bus, u16 address);
 void cpu_ret(cpu_t* cpu, bus_t* bus);
 void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode);
 void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode);
 void cpu_request(cpu_t* cpu, bus_t* bus, u8 index);
 void cpu_interrupt(cpu_t* cpu, bus_t* bus, u16 address);
+
 void cpu_cycle(cpu_t* cpu, bus_t* bus);
+void cpu_cycle_interrupt(cpu_t* cpu, bus_t* bus);
+void cpu_cycle_clock(cpu_t* cpu, bus_t* bus);
 
 #endif

@@ -142,11 +142,11 @@ void apu_cycle(apu_t* apu, bus_t* bus, usize cycles)
             noise_cycle(&apu->ch4.noise, cycles);
         }
 
-        if (apu->clock >= 0x4000)
-        {
-            apu_frame_sequencer(apu);
-            apu->clock -= 0x4000;
-        }
+//        if (apu->clock >= 0x4000)
+//        {
+//            apu_frame_sequencer(apu);
+//            apu->clock -= 0x4000;
+//        }
 
         /* output sample to buffer */
         usize cycles_per_sample = CPU_FREQUENCY / apu->sample_rate;

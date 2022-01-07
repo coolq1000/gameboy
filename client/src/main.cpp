@@ -12,7 +12,7 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 4;
 constexpr auto window_height = lcd_height * 4;
 
-const char* cart_path = "../../res/roms/la.gb";
+const char* cart_path = "../../res/roms/ladx.gbc";
 //const char* save_path = "../../res/roms/zs.sav";
   const char* save_path = "";
 
@@ -26,7 +26,7 @@ namespace app
 	std::unique_ptr<uint32_t> lcd_pixels;
 
     gmb::rom rom(cart_path, save_path);
-    gmb::dmg gameboy(rom, false, 44100, 2048);
+    gmb::dmg gameboy(rom, true, 44100, 2048);
 
     audio as(gameboy.apu_);
 

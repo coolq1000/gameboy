@@ -21,8 +21,6 @@ void cpu_init(cpu_t* cpu, bool is_cgb)
 
 	/* setup clock */
 	cpu->clock.cycles = 0;
-	cpu->clock.div_diff = 0;
-	cpu->clock.tima_cycles = 0;
 
 	/* setup interrupts */
 	cpu->interrupt.pending = 0;
@@ -2633,6 +2631,8 @@ void cpu_interrupt(cpu_t* cpu, bus_t* bus, u16 address)
 
 void cpu_cycle(cpu_t* cpu, bus_t* bus)
 {
+    cpu_cycle_interrupt(cpu, bus);
+
 	/* fetch opcode */
 	u8 opcode = bus_peek8(bus, cpu->registers.pc);
 
@@ -2643,13 +2643,20 @@ void cpu_cycle(cpu_t* cpu, bus_t* bus)
 	}
     else
     {
-//        cpu->clock.cycles++;
+        cpu->clock.cycles++;
     }
 
-	/* decode pending interrupts */
-	u8 interrupt_flags = bus->mmu->memory.interrupt_enable & bus->mmu->io.irf;
+    cpu_cycle_clock(cpu, bus);
+    if (bus->mmu->io.current_speed) cpu_cycle_clock(cpu, bus);
 
-	/* check power mode */
+}
+
+void cpu_cycle_interrupt(cpu_t* cpu, bus_t* bus)
+{
+    /* decode pending interrupts */
+    u8 interrupt_flags = bus->mmu->memory.interrupt_enable & bus->mmu->io.irf;
+
+    /* check power mode */
     if (cpu->stopped)
     {
         /* only joypad interrupts wake the dmg */
@@ -2675,67 +2682,84 @@ void cpu_cycle(cpu_t* cpu, bus_t* bus)
         if (bus->ppu->interrupt.lcd_stat) cpu_request(cpu, bus, INT_LCD_STAT_INDEX);
     }
 
-	/* execute interrupts */
-	if (cpu->interrupt.master && !cpu->interrupt.pending)
-	{
-		if (interrupt_flags & INT_V_BLANK_INDEX)
-		{
-			/* v-blank interrupt */
-			cpu_interrupt(cpu, bus, INT_V_BLANK);
-            bus->mmu->io.irf &= ~INT_V_BLANK_INDEX;
-		}
-		else if (interrupt_flags & INT_LCD_STAT_INDEX)
-		{
-			/* lcd-stat interrupt */
-			cpu_interrupt(cpu, bus, INT_LCD_STAT);
-            bus->mmu->io.irf &= ~INT_LCD_STAT_INDEX;
-		}
-		else if (interrupt_flags & INT_TIMER_INDEX)
-		{
-			/* timer interrupt */
-			cpu_interrupt(cpu, bus, INT_TIMER);
-            bus->mmu->io.irf &= ~INT_TIMER_INDEX;
-		}
-		else if (interrupt_flags & INT_SERIAL_INDEX)
-		{
-			/* serial interrupt */
-			cpu_interrupt(cpu, bus, INT_SERIAL);
-            bus->mmu->io.irf &= ~INT_SERIAL_INDEX;
-		}
-		else if (interrupt_flags & INT_JOYPAD_INDEX)
-		{
-			/* joypad interrupt */
-			cpu_interrupt(cpu, bus, INT_JOYPAD);
-            bus->mmu->io.irf &= ~INT_JOYPAD_INDEX;
-		}
-	}
-	else if (cpu->interrupt.pending)
-	{
-		cpu->interrupt.pending--;
-	}
-
-	/* timer interrupt */
-	cpu->clock.div_diff += cpu->clock.cycles;
-	if (cpu->clock.div_diff >= (16 * 16))
-	{
-        bus->mmu->io.div++;
-		cpu->clock.div_diff -= (16 * 16);
-	}
-
-    if (bus->mmu->io.tac & 0x4)
+    /* execute interrupts */
+    if (cpu->interrupt.master && !cpu->interrupt.pending)
     {
-        cpu->clock.tima_cycles += cpu->clock.cycles;
-
-        usize tac_rate = tac_cycles[bus->mmu->io.tac & 0x3] * (cpu->cgb.enabled ? 2 : 1);
-        if (cpu->clock.tima_cycles > tac_rate)
+        if (interrupt_flags & INT_V_BLANK_INDEX)
         {
-            cpu->clock.tima_cycles -= tac_rate;
-            bus->mmu->io.tima++;
-            if (bus->mmu->io.tima == 0) // tima timer overflown
-            {
-                cpu_request(cpu, bus, INT_TIMER_INDEX);
-                bus->mmu->io.tima = bus->mmu->io.tma;
-            }
+            /* v-blank interrupt */
+            cpu_interrupt(cpu, bus, INT_V_BLANK);
+            bus->mmu->io.irf &= ~INT_V_BLANK_INDEX;
+        }
+        else if (interrupt_flags & INT_LCD_STAT_INDEX)
+        {
+            /* lcd-stat interrupt */
+            cpu_interrupt(cpu, bus, INT_LCD_STAT);
+            bus->mmu->io.irf &= ~INT_LCD_STAT_INDEX;
+        }
+        else if (interrupt_flags & INT_TIMER_INDEX)
+        {
+            /* timer interrupt */
+            cpu_interrupt(cpu, bus, INT_TIMER);
+            bus->mmu->io.irf &= ~INT_TIMER_INDEX;
+        }
+        else if (interrupt_flags & INT_SERIAL_INDEX)
+        {
+            /* serial interrupt */
+            cpu_interrupt(cpu, bus, INT_SERIAL);
+            bus->mmu->io.irf &= ~INT_SERIAL_INDEX;
+        }
+        else if (interrupt_flags & INT_JOYPAD_INDEX)
+        {
+            /* joypad interrupt */
+            cpu_interrupt(cpu, bus, INT_JOYPAD);
+            bus->mmu->io.irf &= ~INT_JOYPAD_INDEX;
+        }
+    }
+    else if (cpu->interrupt.pending)
+    {
+        cpu->interrupt.pending--;
+    }
+}
+
+void cpu_cycle_clock(cpu_t* cpu, bus_t* bus)
+{
+    u16 tac_mask;
+    switch (bus->mmu->io.tac & 0x3)
+    {
+        case 0: tac_mask = BIT(9); break;
+        case 1: tac_mask = BIT(3); break;
+        case 2: tac_mask = BIT(5); break;
+        case 3: tac_mask = BIT(7); break;
+    }
+
+    tac_mask *= bus->mmu->io.tac & BIT(2);
+
+    u16 div_old = bus->mmu->io.div;
+    bus->mmu->io.div++;
+
+    bool tac_bit_old = div_old & tac_mask;
+    bool tac_bit = bus->mmu->io.div & tac_mask;
+
+    if (tac_bit_old && !tac_bit)
+    {
+        bus->mmu->io.tima++;
+        if (bus->mmu->io.tima == 0) /* tima overflown */
+        {
+            bus->mmu->io.tima = bus->mmu->io.tma;
+            cpu_request(cpu, bus, INT_TIMER_INDEX);
+        }
+    }
+    if (bus->apu->enabled)
+    {
+        u16 fs_mask = bus->mmu->io.current_speed ? BIT(14) : BIT(13);
+
+        bool fs_bit_old = div_old & fs_mask;
+        bool fs_bit = bus->mmu->io.div & fs_mask;
+
+        if (fs_bit_old && !fs_bit)
+        {
+            apu_frame_sequencer(bus->apu);
         }
     }
 }

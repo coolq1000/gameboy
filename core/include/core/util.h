@@ -6,6 +6,13 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+/* bit operations */
+
+#define BIT(x) (1 << (x))
+#define MASK(x) (~BIT(x))
+
+/* types */
+
 #define U8_MIN  UINT8_MIN
 #define U8_MAX  UINT8_MAX
 #define U16_MIN UINT16_MIN

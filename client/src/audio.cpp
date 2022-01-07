@@ -25,6 +25,7 @@ void audio::write(ma_device* device, void* output, const void* input, ma_uint32 
 
     for (usize i = 0; i < frame_count; i++)
     {
-        *((i16*)(output) + i) = ((i16*)_audio->apu.core_apu.buffer)[i];
+        i16 sample = ((i16*)_audio->apu.core_apu.buffer)[i];
+        *((i16*)(output) + i) = sample;
     }
 }
