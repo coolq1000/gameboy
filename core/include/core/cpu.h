@@ -22,6 +22,10 @@
 #define INT_SERIAL_INDEX	(1 << 3)
 #define INT_JOYPAD_INDEX	(1 << 4)
 
+/* timing */
+#define APU_CLOCK 0x2000
+#define DIV_CLOCK 256
+
 typedef struct cpu
 {
 	struct
@@ -56,6 +60,9 @@ typedef struct cpu
 	struct
 	{
 		u8 cycles;
+        u16 div_clock;
+        u16 tima_clock;
+        u16 fs_clock;
 	} clock;
 	struct
 	{
@@ -89,6 +96,6 @@ void cpu_interrupt(cpu_t* cpu, bus_t* bus, u16 address);
 
 void cpu_cycle(cpu_t* cpu, bus_t* bus);
 void cpu_cycle_interrupt(cpu_t* cpu, bus_t* bus);
-void cpu_cycle_clock(cpu_t* cpu, bus_t* bus);
+void cpu_cycle_clock(cpu_t* cpu, bus_t* bus, usize cycles);
 
 #endif

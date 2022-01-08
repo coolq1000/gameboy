@@ -18,3 +18,4 @@ set(SOURCE
 add_library(core STATIC ${SOURCE})
 
 target_include_directories(core PUBLIC include)
+target_link_options(core PRIVATE -static-libgcc -static-libstdc++)

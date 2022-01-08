@@ -2,6 +2,7 @@
 #ifndef AUDIO_HPP
 #define AUDIO_HPP
 
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include "core/util.h"
 #include "core/dmg.hpp"

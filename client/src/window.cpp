@@ -4,30 +4,24 @@
 
 window::window(gmb::ppu& ppu) : ppu(ppu)
 {
-    SDL_Init(SDL_INIT_VIDEO);
-    window_ = SDL_CreateWindow("gameboy", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE);
-    renderer = SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED);
-    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, lcd_width, lcd_height);
+    win.create(sf::VideoMode(window_width, window_height), "gameboy");
+    bool created = lcd.create(lcd_width, lcd_height);
 
-    SDL_RenderSetLogicalSize(renderer, lcd_width, lcd_height);
+    lcd_sprite = sf::Sprite(lcd);
 
-    pixels = new u32[lcd_width * lcd_height];
+    pixels = new u32[lcd_width * lcd_height]();
 
-    running = true;
+    win.setFramerateLimit(60);
 }
 
 window::~window()
 {
     delete[] pixels;
-
-    SDL_DestroyWindow(window_);
-    SDL_DestroyRenderer(renderer);
-    SDL_Quit();
 }
 
-bool window::get_key(SDL_Scancode key)
+bool window::get_key(sf::Keyboard::Key key)
 {
-    return keys[key];
+    return sf::Keyboard::isKeyPressed(key);
 }
 
 void window::set_frame_rate(int limit)
@@ -37,37 +31,63 @@ void window::set_frame_rate(int limit)
 
 void window::process()
 {
-    SDL_Event event;
-    while (SDL_PollEvent(&event))
+    sf::Event event;
+    while (win.pollEvent(event))
     {
         switch (event.type)
         {
-            case SDL_QUIT:
-                running = false;
+            case sf::Event::Closed:
+                win.close();
                 break;
         }
     }
-
-    keys = reinterpret_cast<const u8*>(SDL_GetKeyboardState(NULL));
 }
 
 void window::update()
 {
+    /* reposition lcd sprite */
+    sf::Vector2u window_size = win.getSize();
+    float window_ratio = window_size.x / (float)window_size.y;
+    float lcd_ratio = (float)lcd_width / (float)lcd_height;
+
+    float pos_x = 0.0f;
+    float pos_y = 0.0f;
+    float size_x = 1.0f;
+    float size_y = 1.0f;
+
+    if (window_ratio > lcd_ratio)
+    {
+        size_x = lcd_ratio / window_ratio;
+        pos_x = (1.0f - size_x) / 2.0f;
+    }
+    else
+    {
+        size_y = window_ratio / lcd_ratio;
+        pos_y = (1.0f - size_y) / 2.0f;
+    }
+
+    float scale_x = (float)window_width / (float)lcd_width;
+    float scale_y = (float)window_height / (float)lcd_height;
+
+    lcd_sprite.setScale(size_x * scale_x, size_y * scale_y);
+    lcd_sprite.setPosition(pos_x * window_width, pos_y * window_height);
+
     for (usize i = 0; i < lcd_width * lcd_height; i++)
     {
         pixels[i] = shader(ppu.core_ppu.lcd[i]);
     }
 
-    SDL_UpdateTexture(texture, NULL, pixels, lcd_width * sizeof(u32));
+    win.clear();
 
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
+    lcd.update(reinterpret_cast<sf::Uint8*>(pixels));
+
+    win.draw(lcd_sprite);
+    win.display();
 }
 
 bool window::open()
 {
-    return running;
+    return win.isOpen();
 }
 
 float window::lerp(float a, float b, float t)

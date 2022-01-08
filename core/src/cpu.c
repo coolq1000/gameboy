@@ -2648,8 +2648,8 @@ void cpu_cycle(cpu_t* cpu, bus_t* bus)
 
     for (usize i = 0; i < cpu->clock.cycles; i++)
     {
-        cpu_cycle_clock(cpu, bus);
-        if (bus->mmu->io.current_speed) cpu_cycle_clock(cpu, bus);
+        cpu_cycle_clock(cpu, bus, cpu->clock.cycles);
+        if (bus->mmu->io.current_speed) cpu_cycle_clock(cpu, bus, cpu->clock.cycles);
     }
 }
 
@@ -2724,8 +2724,51 @@ void cpu_cycle_interrupt(cpu_t* cpu, bus_t* bus)
     }
 }
 
-void cpu_cycle_clock(cpu_t* cpu, bus_t* bus)
+void cpu_cycle_clock(cpu_t* cpu, bus_t* bus, usize cycles)
 {
+//    cpu->clock.div_clock += cycles;
+//    cpu->clock.tima_clock += cycles;
+//    cpu->clock.fs_clock += cycles;
+//
+//    if (cpu->clock.div_clock >= DIV_CLOCK)
+//    {
+//        bus->mmu->io.div++;
+//        cpu->clock.div_clock -= DIV_CLOCK;
+//    }
+//
+//    if (bus->mmu->io.tac & BIT(2))
+//    {
+//        usize tima_rate;
+//
+//        switch (bus->mmu->io.tac & 0x3)
+//        {
+//            case 0: tima_rate = 0x1000; break;
+//            case 1: tima_rate = 0x40000; break;
+//            case 2: tima_rate = 0x10000; break;
+//            case 3: tima_rate = 0x4000; break;
+//        }
+//
+//        if (cpu->clock.tima_clock >= tima_rate)
+//        {
+//            bus->mmu->io.tima++;
+//            if (!bus->mmu->io.tima)
+//            {
+//                bus->mmu->io.tima = bus->mmu->io.tma;
+//                cpu_request(cpu, bus, INT_TIMER_INDEX);
+//            }
+//            cpu->clock.tima_clock -= tima_rate;
+//        }
+//    }
+//    if (bus->apu->enabled)
+//    {
+//        usize apu_rate = bus->mmu->io.current_speed ? 0x4000 : 0x2000;
+//        if (cpu->clock.fs_clock >= apu_rate)
+//        {
+//            apu_frame_sequencer(bus->apu);
+//            cpu->clock.fs_clock -= apu_rate;
+//        }
+//    }
+
     u16 tac_mask;
     switch (bus->mmu->io.tac & 0x3)
     {

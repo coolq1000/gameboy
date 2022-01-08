@@ -3,8 +3,7 @@
 #define WINDOW_H
 
 #include <core/dmg.hpp>
-#define SDL_MAIN_HANDLED
-#include <SDL.h>
+#include <SFML/Graphics.hpp>
 
 constexpr auto lcd_width = 160;
 constexpr auto lcd_height = 144;
@@ -16,12 +15,10 @@ class window
 {
     bool running;
 
-    SDL_Window* window_;
-    SDL_Renderer* renderer;
-    SDL_Texture* texture;
+    sf::RenderWindow win;
+    sf::Texture lcd;
+    sf::Sprite lcd_sprite;
     u32* pixels;
-
-    const u8* keys;
 
     gmb::ppu ppu;
 
@@ -30,7 +27,7 @@ public:
     window(gmb::ppu& ppu);
     ~window();
 
-    bool get_key(SDL_Scancode key);
+    bool get_key(sf::Keyboard::Key key);
     void set_frame_rate(int limit);
 
     void process();
