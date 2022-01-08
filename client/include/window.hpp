@@ -3,6 +3,7 @@
 #define WINDOW_H
 
 #include <core/dmg.hpp>
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 
 constexpr auto lcd_width = 160;

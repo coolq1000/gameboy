@@ -8,28 +8,11 @@ set(SOURCE
     src/audio.cpp include/audio.hpp
     src/window.cpp include/window.hpp)
 
-set(BUILD_SHARED_LIBS FALSE)
-if (APPLE)
-    # set(SFML_INSTALL_XCODE_TEMPLATES TRUE)
-    set(CMAKE_WARN_DEPRECATED FALSE)
-    set(BUILD_SHARED_LIBS TRUE)
-endif()
-
-add_subdirectory(deps/sfml)
 add_subdirectory(deps/sdl2)
-add_subdirectory(deps/miniaudio)
 
 add_executable(client ${SOURCE})
 
-target_include_directories(client PRIVATE include deps/miniaudio/include deps/sdl2 deps/sfml/include)
-target_link_libraries(client sfml-graphics miniaudio SDL2)
+target_include_directories(client PRIVATE include deps/sdl2/include)
+target_link_libraries(client SDL2-static)
 
 target_compile_options(client PRIVATE -Wno-switch)
-
-if (WIN32)
-    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-        configure_file(deps/sfml/extlibs/bin/x64/openal32.dll ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-    else ()
-        configure_file(deps/sfml/extlibs/bin/x86/openal32.dll ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-    endif ()
-endif ()
