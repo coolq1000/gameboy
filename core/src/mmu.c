@@ -31,9 +31,9 @@ void mmu_init(mmu_t* mmu, rom_t* rom)
 		memset(mmu->memory.xram[i], 0, XRAM_SIZE);
 	for (usize i = 0; i < CGB_WRAM_COUNT; i++)
 		memset(mmu->memory.wram[i], 0, WRAM_SIZE);
-	memset(mmu->memory.oam, 0, sizeof(mmu->memory.oam));
-	memset(mmu->memory.io, 0, sizeof(mmu->memory.io));
-	memset(mmu->memory.hram, 0, sizeof(mmu->memory.hram));
+	memset(mmu->memory.oam, 0, OAM_SIZE);
+	memset(mmu->memory.io, 0, IO_SIZE);
+	memset(mmu->memory.hram, 0, HRAM_SIZE);
 	mmu->memory.interrupt_enable = 0;
 
 	/* setup memory */

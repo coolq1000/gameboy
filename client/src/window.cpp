@@ -10,8 +10,6 @@ window::window(gmb::ppu& ppu) : ppu(ppu)
     lcd_sprite = sf::Sprite(lcd);
 
     pixels = new u32[lcd_width * lcd_height]();
-
-    win.setFramerateLimit(60);
 }
 
 window::~window()
@@ -125,4 +123,9 @@ u32 window::shader(u32 pixel)
     b = std::min(std::max(b_f, 0.0f), 1.0f) * 0xFF;
 
     return (a << 24) | (r << 16) | (g << 8) | b;
+}
+
+bool window::focused()
+{
+    return win.hasFocus();
 }

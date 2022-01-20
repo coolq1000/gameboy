@@ -6,8 +6,9 @@
 #include "core/mmu.h"
 #include "core/ppu.h"
 
-void bus_init(bus_t* bus, apu_t* apu, mmu_t* mmu, ppu_t* ppu)
+void bus_init(bus_t* bus, cpu_t* cpu, apu_t* apu, mmu_t* mmu, ppu_t* ppu)
 {
+    bus->cpu = cpu;
     bus->apu = apu;
     bus->mmu = mmu;
     bus->ppu = ppu;

@@ -6,41 +6,48 @@
 #include "window.hpp"
 #include "audio.hpp"
 
-const char* cart_path = "../../res/roms/za.gbc";
-const char* save_path = "../../res/roms/za.sav";
+const char* cart_path = "../../res/roms/zs.gbc";
+const char* save_path = "../../res/roms/zs.sav";
 //  const char* save_path = "";
 
 namespace app
 {
     gmb::rom rom(cart_path, save_path);
-    gmb::dmg gameboy(rom, true, 48000, 1024);
+    gmb::dmg gameboy(rom, true, 48000, 2048);
 
     window win(gameboy.ppu_);
     audio as(gameboy.apu_);
 
+    i16* sample_buffer;
+
+    bool turbo_active = false;
+
 	void draw();
+    void audio();
 
 	void start()
 	{
-
+        sample_buffer = new i16[gameboy.apu_.latency * AUDIO_CHANNELS];
+        for (usize i = 0; i < gameboy.apu_.latency * AUDIO_CHANNELS; i++) sample_buffer[i] = 0;
 	}
 
 	void stop()
 	{
 		rom.dump_save(gameboy.mmu_);
+        delete[] sample_buffer;
 	}
 
     void set_turbo(bool turbo)
     {
+        turbo_active = turbo;
+
         if (turbo)
         {
-            gameboy.core_dmg.ppu.frame_step = 5;
-            win.set_frame_rate(0);
+            gameboy.core_dmg.ppu.frame_step = SPEED_SHIFT;
         }
         else
         {
             gameboy.core_dmg.ppu.frame_step = 1;
-            win.set_frame_rate(60);
         }
     }
 
@@ -51,7 +58,8 @@ namespace app
 		while (win.open())
 		{
             gameboy.cycle();
-            if ((gameboy.core_dmg.cpu.interrupt.master && gameboy.core_dmg.ppu.draw) || i % 1000000 == 0) draw();
+            if (gameboy.core_dmg.apu.update) audio();
+            if (gameboy.core_dmg.ppu.draw || i % 1000000 == 0) draw();
             i++;
 		}
 	}
@@ -60,19 +68,42 @@ namespace app
 	{
         win.process();
 
-        gameboy.core_dmg.mmu.buttons.up = win.get_key(sf::Keyboard::Up);
-        gameboy.core_dmg.mmu.buttons.down = win.get_key(sf::Keyboard::Down);
-        gameboy.core_dmg.mmu.buttons.left = win.get_key(sf::Keyboard::Left);
-        gameboy.core_dmg.mmu.buttons.right = win.get_key(sf::Keyboard::Right);
-        gameboy.core_dmg.mmu.buttons.b = win.get_key(sf::Keyboard::Z);
-        gameboy.core_dmg.mmu.buttons.a = win.get_key(sf::Keyboard::X);
-        gameboy.core_dmg.mmu.buttons.start = win.get_key(sf::Keyboard::Return);
-        gameboy.core_dmg.mmu.buttons.select = win.get_key(sf::Keyboard::BackSpace);
+        if (win.focused())
+        {
+            gameboy.core_dmg.mmu.buttons.up = win.get_key(sf::Keyboard::Up);
+            gameboy.core_dmg.mmu.buttons.down = win.get_key(sf::Keyboard::Down);
+            gameboy.core_dmg.mmu.buttons.left = win.get_key(sf::Keyboard::Left);
+            gameboy.core_dmg.mmu.buttons.right = win.get_key(sf::Keyboard::Right);
+            gameboy.core_dmg.mmu.buttons.b = win.get_key(sf::Keyboard::Z);
+            gameboy.core_dmg.mmu.buttons.a = win.get_key(sf::Keyboard::X);
+            gameboy.core_dmg.mmu.buttons.start = win.get_key(sf::Keyboard::Return);
+            gameboy.core_dmg.mmu.buttons.select = win.get_key(sf::Keyboard::BackSpace);
+            gameboy.core_dmg.mmu.buttons.turbo = win.get_key(sf::Keyboard::Space);
 
-        set_turbo(win.get_key(sf::Keyboard::Space));
+            set_turbo(gameboy.core_dmg.mmu.buttons.turbo);
+        }
 
         win.update();
 	}
+
+    void audio()
+    {
+        static float buffer_fill = 0;
+        sample_buffer[static_cast<usize>(buffer_fill * 2) + 0] = gameboy.core_dmg.apu.output_left;
+        sample_buffer[static_cast<usize>(buffer_fill * 2) + 1] = gameboy.core_dmg.apu.output_right;
+
+        buffer_fill += 1.0f / (turbo_active ? SPEED_SHIFT : 1.0f);
+
+        if (buffer_fill >= gameboy.apu_.latency)
+        {
+            buffer_fill = 0;
+            while (as.queued() > gameboy.apu_.latency * AUDIO_CHANNELS)
+            {
+                SDL_Delay(1);
+            }
+            as.queue(sample_buffer, gameboy.apu_.latency * AUDIO_CHANNELS);
+        }
+    }
 };
 
 int main()

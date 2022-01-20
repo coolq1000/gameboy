@@ -9,12 +9,11 @@ void dmg_init(dmg_t* dmg, rom_t* rom, bool is_cgb, usize sample_rate, usize late
 	ppu_init(&dmg->ppu, is_cgb);
 
     /* map memory components onto bus */
-    bus_init(&dmg->bus, &dmg->apu, &dmg->mmu, &dmg->ppu);
+    bus_init(&dmg->bus, &dmg->cpu, &dmg->apu, &dmg->mmu, &dmg->ppu);
 }
 
 void dmg_free(dmg_t* dmg)
 {
-    apu_free(&dmg->apu);
 	mmu_free(&dmg->mmu);
 }
 

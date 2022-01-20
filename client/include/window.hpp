@@ -8,8 +8,8 @@
 constexpr auto lcd_width = 160;
 constexpr auto lcd_height = 144;
 
-constexpr auto window_width = lcd_width * 2;
-constexpr auto window_height = lcd_height * 2;
+constexpr auto window_width = lcd_width * 4;
+constexpr auto window_height = lcd_height * 4;
 
 class window
 {
@@ -36,6 +36,8 @@ public:
 
     float lerp(float a, float b, float t);
     u32 shader(u32 pixel);
+
+    bool focused();
 };
 
 #endif

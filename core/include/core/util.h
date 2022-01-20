@@ -6,6 +6,9 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+/* constants */
+#define SPEED_SHIFT 4
+
 /* bit operations */
 
 #define BIT(x) (1 << (x))

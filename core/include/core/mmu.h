@@ -124,6 +124,7 @@ typedef struct mmu
         u8 start, select;
         u8 a, b;
         u8 down, up, left, right;
+        u8 turbo;
     } buttons;
     struct
     {

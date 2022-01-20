@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "core/mmu.h"
 
 u8 duty_table[4][8] = {
         { 0, 0, 0, 0, 0, 0, 0, 1 },
@@ -13,7 +13,7 @@ u8 duty_table[4][8] = {
 
 bool timer_tick(timer_t* timer)
 {
-    if (--timer->counter == 0)
+    if (!timer->counter || --timer->counter == 0)
     {
         timer_reset(timer);
         return true;
@@ -123,8 +123,7 @@ void noise_cycle(noise_t* noise)
 
 void channel_length_cycle(channel_t* channel)
 {
-    channel->length.timer.counter--;
-    if (channel->length.enabled && channel->length.timer.counter == 0) channel->enabled = false;
+    if (channel->length.enabled && timer_tick(&channel->length.timer)) channel->enabled = false;
 }
 
 void apu_init(apu_t* apu, usize sample_rate, usize latency)
@@ -132,51 +131,47 @@ void apu_init(apu_t* apu, usize sample_rate, usize latency)
     *apu = (apu_t){ 0 };
     apu->sample_rate = sample_rate;
     apu->latency = latency;
-    apu->buffer1 = malloc(sizeof(i16) * latency);
-    apu->buffer2 = malloc(sizeof(i16) * latency);
-
-    /* empty mixing buffer */
-    memset(apu->buffer1, 0, sizeof(i16) * latency);
-    memset(apu->buffer2, 0, sizeof(i16) * latency);
-}
-
-void apu_free(apu_t* apu)
-{
-    free(apu->buffer1);
-    free(apu->buffer2);
 }
 
 void apu_cycle(apu_t* apu, bus_t* bus, usize cycles)
 {
+    usize m_cycles = cycles / 4;
+
+    apu->tick++;
+
+    apu->update = false;
     if (apu->enabled)
     {
-        apu->clock += cycles;
-        apu->sample_clock += cycles;
+        apu->clock += m_cycles;
 
-        for (usize i = 0; i < cycles; i++)
+        if (apu->tick % SPEED_SHIFT == 0 || !bus->mmu->buttons.turbo)
         {
-            if (apu->ch1.duty.enabled) duty_cycle(&apu->ch1.duty);
-            if (apu->ch2.duty.enabled) duty_cycle(&apu->ch2.duty);
-            wave_cycle(&apu->ch3.wave, bus);
-            noise_cycle(&apu->ch4.noise);
+            for (usize i = 0; i < m_cycles; i++)
+            {
+                if (apu->ch1.duty.enabled) duty_cycle(&apu->ch1.duty);
+                if (apu->ch2.duty.enabled) duty_cycle(&apu->ch2.duty);
+                wave_cycle(&apu->ch3.wave, bus);
+                noise_cycle(&apu->ch4.noise);
+            }
         }
 
         /* output sample to buffer */
         usize cycles_per_sample = CPU_FREQUENCY / apu->sample_rate;
-        if (apu->sample_clock >= cycles_per_sample)
+        if (apu->clock >= cycles_per_sample)
         {
-            i16 sample = 0;
+            apu->output_left = 0;
+            apu->output_right = 0;
 
-            sample += apu_ch1_sample(apu);
-            sample += apu_ch2_sample(apu);
-            sample += apu_ch3_sample(apu);
-            sample += apu_ch4_sample(apu);
+            apu_ch1_sample(apu);
+            apu_ch2_sample(apu);
+            apu_ch3_sample(apu);
+            apu_ch4_sample(apu);
 
-            (apu->flip ? apu->buffer2 : apu->buffer1)[apu->sample++ % apu->latency] = sample;
+            apu->sample++;
 
-            apu->flip = (apu->sample / apu->latency) % 2;
+            apu->update = true;
 
-            apu->sample_clock -= cycles_per_sample;
+            apu->clock -= cycles_per_sample;
         }
     }
 }
@@ -276,68 +271,48 @@ void apu_ch4_trigger(apu_t* apu)
     if (!apu->ch4.dac) apu->ch4.enabled = false;
 }
 
-i16 apu_ch1_sample(apu_t* apu)
+void apu_ch1_sample(apu_t* apu)
 {
-    i16 sample = 0;
-
-    if (apu->ch1.dac)
-    {
-        sample -= AMP_CHL / 2;
-    }
     if (apu->ch1.enabled)
     {
-        sample += AMP_BASE * apu->ch1.duty.state * apu->ch1.envelope.volume;
+        apu->output_left -= AMP_CHL / 2;
+        apu->output_right -= AMP_CHL / 2;
+        apu->output_left += AMP_BASE * apu->ch1.duty.state * apu->ch1.envelope.volume * apu->ch1.left * apu->left_volume;
+        apu->output_right += AMP_BASE * apu->ch1.duty.state * apu->ch1.envelope.volume * apu->ch1.right * apu->right_volume;
     }
-
-    return sample;
 }
 
-i16 apu_ch2_sample(apu_t* apu)
+void apu_ch2_sample(apu_t* apu)
 {
-    i16 sample = 0;
-
-    if (apu->ch2.dac)
-    {
-        sample -= AMP_CHL / 2;
-    }
     if (apu->ch2.enabled)
     {
-        sample += AMP_BASE * apu->ch2.duty.state * apu->ch2.envelope.volume;
+        apu->output_left -= AMP_CHL / 2;
+        apu->output_right -= AMP_CHL / 2;
+        apu->output_left += AMP_BASE * apu->ch2.duty.state * apu->ch2.envelope.volume * apu->ch2.left * apu->left_volume;
+        apu->output_right += AMP_BASE * apu->ch2.duty.state * apu->ch2.envelope.volume * apu->ch2.right * apu->right_volume;
     }
-
-    return sample;
 }
 
-i16 apu_ch3_sample(apu_t* apu)
+void apu_ch3_sample(apu_t* apu)
 {
-    i16 sample = 0;
-
-    if (apu->ch3.dac)
+    if (apu->ch3.enabled)
     {
-        sample -= AMP_CHL / 2;
+        apu->output_left -= AMP_CHL / 2;
+        apu->output_right -= AMP_CHL / 2;
+        apu->output_left += AMP_BASE * (apu->ch3.wave.output >> (apu->ch3.wave.shift - 1)) * apu->ch3.left * apu->left_volume;
+        apu->output_right += AMP_BASE * (apu->ch3.wave.output >> (apu->ch3.wave.shift - 1)) * apu->ch3.right * apu->right_volume;
     }
-    if (apu->ch3.enabled && apu->ch3.wave.shift)
-    {
-        sample += AMP_BASE * (apu->ch3.wave.output >> (apu->ch3.wave.shift - 1));
-    }
-
-    return sample;
 }
 
-i16 apu_ch4_sample(apu_t* apu)
+void apu_ch4_sample(apu_t* apu)
 {
-    i16 sample = 0;
-
-    if (apu->ch4.dac)
-    {
-        sample -= AMP_CHL / 2;
-    }
     if (apu->ch4.enabled)
     {
-        sample += AMP_BASE * apu->ch4.noise.state * apu->ch4.envelope.volume;
+        apu->output_left -= AMP_CHL / 2;
+        apu->output_right -= AMP_CHL / 2;
+        apu->output_left += AMP_BASE * apu->ch4.noise.state * apu->ch4.envelope.volume * apu->ch4.left * apu->left_volume;
+        apu->output_right += AMP_BASE * apu->ch4.noise.state * apu->ch4.envelope.volume * apu->ch4.right * apu->right_volume;
     }
-
-    return sample;
 }
 
 u8 apu_peek(apu_t* apu, u16 address)
@@ -504,17 +479,19 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
             break;
         case MMAP_IO_NR50:
             apu->nr50 = value;
+            apu->right_volume = value & 0x07;
+            apu->left_volume = (value & 0x70) >> 4;
             break;
         case MMAP_IO_NR51:
             apu->nr51 = value;
-            apu->ch1.right  = value & 0x01;
-            apu->ch2.right  = value & 0x02;
-            apu->ch3.right  = value & 0x04;
-            apu->ch4.right  = value & 0x08;
-            apu->ch1.left   = value & 0x10;
-            apu->ch2.left   = value & 0x20;
-            apu->ch3.left   = value & 0x40;
-            apu->ch4.left   = value & 0x80;
+            apu->ch1.right  = (value & BIT(0)) >> 0;
+            apu->ch2.right  = (value & BIT(1)) >> 1;
+            apu->ch3.right  = (value & BIT(2)) >> 2;
+            apu->ch4.right  = (value & BIT(3)) >> 3;
+            apu->ch1.left   = (value & BIT(4)) >> 4;
+            apu->ch2.left   = (value & BIT(5)) >> 5;
+            apu->ch3.left   = (value & BIT(6)) >> 6;
+            apu->ch4.left   = (value & BIT(7)) >> 7;
             break;
         case MMAP_IO_NR52:
             apu->nr52 = value;

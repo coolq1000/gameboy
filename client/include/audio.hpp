@@ -8,11 +8,10 @@
 #include "core/dmg.hpp"
 
 #define AUDIO_FORMAT AUDIO_S16SYS
-#define AUDIO_CHANNELS 1
+#define AUDIO_CHANNELS 2
 
 class audio
 {
-
     SDL_AudioDeviceID device;
 
 public:
@@ -22,10 +21,8 @@ public:
     audio(gmb::apu& _apu);
     ~audio();
 
-    static void write(void *userdata, Uint8* stream, int len);
-
-    void queue(i16 sample);
-    u32 queued();
+    void queue(i16* sample, usize length);
+    usize queued();
 };
 
 #endif

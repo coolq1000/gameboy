@@ -14,6 +14,6 @@ add_subdirectory(deps/sfml)
 add_executable(client ${SOURCE})
 
 target_include_directories(client PRIVATE include deps/sdl2/include deps/sfml/include)
-target_link_libraries(client sfml-graphics SDL2-static)
+target_link_libraries(client sfml-graphics SDL2)
 
 target_compile_options(client PRIVATE -Wno-switch)

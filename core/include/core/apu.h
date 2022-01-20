@@ -34,7 +34,7 @@
 
 #define CPU_FREQUENCY 4194304
 
-#define AMP_MAX     (I16_MAX)
+#define AMP_MAX     (I16_MAX / 0x10)
 #define AMP_CHL     (AMP_MAX / 0x04)
 #define AMP_BASE    (AMP_CHL / 0x10)
 
@@ -146,26 +146,25 @@ typedef struct apu
     u8 nr50, nr51, nr52;                /* mixer     */
 
     bool enabled;
+    u8 left_volume, right_volume;
     channel_t ch1; /* tone & sweep */
     channel_t ch2; /* tone */
     channel_t ch3; /* wave output */
     channel_t ch4; /* noise */
 
     /* timing */
-    u16 clock, sample_clock;
+    u16 clock, tick;
 
     /* frame sequencer */
     u8 frame_sequence;
 
     /* mixing */
     usize sample;
-    i16* buffer1;
-    i16* buffer2;
-    bool flip;
+    i16 output_left, output_right;
+    bool update;
 } apu_t;
 
 void apu_init(apu_t* apu, usize sample_rate, usize latency);
-void apu_free(apu_t* apu);
 
 void apu_cycle(apu_t* apu, bus_t* bus, usize cycles);
 void apu_frame_sequencer(apu_t* apu);
@@ -174,10 +173,10 @@ void apu_ch1_trigger(apu_t* apu);
 void apu_ch2_trigger(apu_t* apu);
 void apu_ch3_trigger(apu_t* apu);
 
-i16 apu_ch1_sample(apu_t* apu);
-i16 apu_ch2_sample(apu_t* apu);
-i16 apu_ch3_sample(apu_t* apu);
-i16 apu_ch4_sample(apu_t* apu);
+void apu_ch1_sample(apu_t* apu);
+void apu_ch2_sample(apu_t* apu);
+void apu_ch3_sample(apu_t* apu);
+void apu_ch4_sample(apu_t* apu);
 
 u8 apu_peek(apu_t* apu, u16 address);
 void apu_poke(apu_t* apu, u16 address, u8 value);

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "core/ppu.h"
 
+#include "core/cpu.h"
 #include "core/mmu.h"
 #include "core/bus.h"
 
@@ -94,7 +95,7 @@ void ppu_cycle(ppu_t* ppu, bus_t* bus, usize cycles)
 			if (ppu->line == SCANLINE_V_BLANK)
 			{
 				ppu->interrupt.v_blank = true;
-                ppu->draw = drawing;
+                ppu->draw = drawing && bus->cpu->interrupt.master;
 				ppu->mode = MODE_V_BLANK;
                 ppu_set_stat_mode(ppu, bus); // todo: check
                 ppu->frame++;
@@ -118,17 +119,14 @@ void ppu_cycle(ppu_t* ppu, bus_t* bus, usize cycles)
 	case MODE_LCD_TRANSFER:
 		if (CYCLES_ELAPSED(ppu, CYCLES_LCD_TRANSFER))
 		{
-            if (drawing)
+            u8 lcd_enable = (bus->mmu->io.lcdc & 0x80) != 0;
+
+            if (lcd_enable) ppu_enable(ppu);
+            else ppu_disable(ppu);
+
+            if (lcd_enable && drawing)
             {
-                u8 lcd_enable = (bus->mmu->io.lcdc & 0x80) != 0;
-
-                if (lcd_enable) ppu_enable(ppu);
-                else ppu_disable(ppu);
-
-                if (lcd_enable)
-                {
-                    ppu_render_line(ppu, bus);
-                }
+                ppu_render_line(ppu, bus);
             }
 			ppu->mode = MODE_H_BLANK;
 			
