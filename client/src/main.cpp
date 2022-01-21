@@ -1,7 +1,5 @@
 
-#include <cstdio>
 #include <cstdlib>
-#include <cmath>
 #include <core/dmg.hpp>
 #include "window.hpp"
 #include "audio.hpp"

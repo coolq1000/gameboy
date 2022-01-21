@@ -8,6 +8,7 @@ set(SOURCE
     src/audio.cpp include/audio.hpp
     src/window.cpp include/window.hpp)
 
+set(SDL_STATIC TRUE)
 add_subdirectory(deps/sdl2)
 
 add_executable(client ${SOURCE})
