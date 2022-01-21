@@ -9,11 +9,10 @@ set(SOURCE
     src/window.cpp include/window.hpp)
 
 add_subdirectory(deps/sdl2)
-add_subdirectory(deps/sfml)
 
 add_executable(client ${SOURCE})
 
-target_include_directories(client PRIVATE include deps/sdl2/include deps/sfml/include)
-target_link_libraries(client sfml-graphics SDL2)
+target_include_directories(client PRIVATE include deps/sdl2/include)
+target_link_libraries(client SDL2-static)
 
-target_compile_options(client PRIVATE -Wno-switch)
+#target_compile_options(client PRIVATE -Wno-switch)

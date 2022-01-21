@@ -68,17 +68,17 @@ namespace app
 	{
         win.process();
 
-        if (win.focused())
+//        if (win.focused())
         {
-            gameboy.core_dmg.mmu.buttons.up = win.get_key(sf::Keyboard::Up);
-            gameboy.core_dmg.mmu.buttons.down = win.get_key(sf::Keyboard::Down);
-            gameboy.core_dmg.mmu.buttons.left = win.get_key(sf::Keyboard::Left);
-            gameboy.core_dmg.mmu.buttons.right = win.get_key(sf::Keyboard::Right);
-            gameboy.core_dmg.mmu.buttons.b = win.get_key(sf::Keyboard::Z);
-            gameboy.core_dmg.mmu.buttons.a = win.get_key(sf::Keyboard::X);
-            gameboy.core_dmg.mmu.buttons.start = win.get_key(sf::Keyboard::Return);
-            gameboy.core_dmg.mmu.buttons.select = win.get_key(sf::Keyboard::BackSpace);
-            gameboy.core_dmg.mmu.buttons.turbo = win.get_key(sf::Keyboard::Space);
+            gameboy.core_dmg.mmu.buttons.up = win.get_key(SDL_SCANCODE_UP);
+            gameboy.core_dmg.mmu.buttons.down = win.get_key(SDL_SCANCODE_DOWN);
+            gameboy.core_dmg.mmu.buttons.left = win.get_key(SDL_SCANCODE_LEFT);
+            gameboy.core_dmg.mmu.buttons.right = win.get_key(SDL_SCANCODE_RIGHT);
+            gameboy.core_dmg.mmu.buttons.b = win.get_key(SDL_SCANCODE_Z);
+            gameboy.core_dmg.mmu.buttons.a = win.get_key(SDL_SCANCODE_X);
+            gameboy.core_dmg.mmu.buttons.start = win.get_key(SDL_SCANCODE_RETURN);
+            gameboy.core_dmg.mmu.buttons.select = win.get_key(SDL_SCANCODE_BACKSPACE);
+            gameboy.core_dmg.mmu.buttons.turbo = win.get_key(SDL_SCANCODE_SPACE);
 
             set_turbo(gameboy.core_dmg.mmu.buttons.turbo);
         }
