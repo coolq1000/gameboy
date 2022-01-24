@@ -1,11 +1,12 @@
 
 #include <cstdlib>
+#include <memory>
 #include <core/dmg.hpp>
 #include "window.hpp"
 #include "audio.hpp"
 
-const char* cart_path = "../../res/roms/zs.gbc";
-const char* save_path = "../../res/roms/zs.sav";
+const char* cart_path = "../../res/roms/za.gbc";
+const char* save_path = "../../res/roms/za.sav";
 //  const char* save_path = "";
 
 namespace app
@@ -16,7 +17,7 @@ namespace app
     window win(gameboy.ppu_);
     audio as(gameboy.apu_);
 
-    i16* sample_buffer;
+    std::unique_ptr<i16> sample_buffer;
 
     bool turbo_active = false;
 
@@ -25,14 +26,12 @@ namespace app
 
 	void start()
 	{
-        sample_buffer = new i16[gameboy.apu_.latency * AUDIO_CHANNELS];
-        for (usize i = 0; i < gameboy.apu_.latency * AUDIO_CHANNELS; i++) sample_buffer[i] = 0;
+        sample_buffer = std::unique_ptr<i16>(new i16[gameboy.apu_.latency * AUDIO_CHANNELS]);
 	}
 
 	void stop()
 	{
 		rom.dump_save(gameboy.mmu_);
-        delete[] sample_buffer;
 	}
 
     void set_turbo(bool turbo)
@@ -66,7 +65,7 @@ namespace app
 	{
         win.process();
 
-//        if (win.focused())
+        if (win.focused())
         {
             gameboy.core_dmg.mmu.buttons.up = win.get_key(SDL_SCANCODE_UP);
             gameboy.core_dmg.mmu.buttons.down = win.get_key(SDL_SCANCODE_DOWN);
@@ -87,8 +86,8 @@ namespace app
     void audio()
     {
         static float buffer_fill = 0;
-        sample_buffer[static_cast<usize>(buffer_fill * 2) + 0] = gameboy.core_dmg.apu.output_left;
-        sample_buffer[static_cast<usize>(buffer_fill * 2) + 1] = gameboy.core_dmg.apu.output_right;
+        sample_buffer.get()[static_cast<usize>(buffer_fill * 2) + 0] = gameboy.core_dmg.apu.output_left;
+        sample_buffer.get()[static_cast<usize>(buffer_fill * 2) + 1] = gameboy.core_dmg.apu.output_right;
 
         buffer_fill += 1.0f / (turbo_active ? SPEED_SHIFT : 1.0f);
 
@@ -99,10 +98,10 @@ namespace app
             {
                 SDL_Delay(1);
             }
-            as.queue(sample_buffer, gameboy.apu_.latency * AUDIO_CHANNELS);
+            as.queue(sample_buffer.get(), gameboy.apu_.latency * AUDIO_CHANNELS);
         }
     }
-};
+}
 
 int main()
 {

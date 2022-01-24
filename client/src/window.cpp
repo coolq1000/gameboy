@@ -104,5 +104,5 @@ u32 window::shader(u32 pixel)
 
 bool window::focused()
 {
-    return SDL_GetWindowFlags(window_) & SDL_WINDOW_INPUT_GRABBED;
+    return SDL_GetWindowFlags(window_) & SDL_WINDOW_INPUT_FOCUS;
 }
