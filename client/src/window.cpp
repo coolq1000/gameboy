@@ -58,6 +58,15 @@ void window::update()
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
+
+    while (true) {
+        u32 delta = SDL_GetTicks() - last_time;
+
+        if (delta > 1000 / 60.0) {
+            last_time = SDL_GetTicks();
+            break;
+        }
+    }
 }
 
 bool window::open()

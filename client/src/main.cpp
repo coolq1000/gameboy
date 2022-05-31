@@ -12,7 +12,7 @@ const char* save_path = "../../res/roms/za.sav";
 namespace app
 {
     gmb::rom rom(cart_path, save_path);
-    gmb::dmg gameboy(rom, true, 48000, 2048);
+    gmb::dmg gameboy(rom, true, 48000, 1024);
 
     window win(gameboy.ppu_);
     audio as(gameboy.apu_);
@@ -27,6 +27,7 @@ namespace app
 	void start()
 	{
         sample_buffer = std::unique_ptr<i16>(new i16[gameboy.apu_.latency * AUDIO_CHANNELS]);
+        for (u32 i = 0; i < gameboy.apu_.latency * AUDIO_CHANNELS; i++) sample_buffer.get()[i] = 0;
 	}
 
 	void stop()
@@ -50,14 +51,11 @@ namespace app
 
 	void run()
 	{
-        usize i = 0;
-
 		while (win.open())
 		{
             gameboy.cycle();
             if (gameboy.core_dmg.apu.update) audio();
-            if (gameboy.core_dmg.ppu.draw || i % 1000000 == 0) draw();
-            i++;
+            if (gameboy.core_dmg.ppu.draw) draw();
 		}
 	}
 
@@ -86,18 +84,15 @@ namespace app
     void audio()
     {
         static float buffer_fill = 0;
-        sample_buffer.get()[static_cast<usize>(buffer_fill * 2) + 0] = gameboy.core_dmg.apu.output_left;
-        sample_buffer.get()[static_cast<usize>(buffer_fill * 2) + 1] = gameboy.core_dmg.apu.output_right;
+        sample_buffer.get()[static_cast<usize>(buffer_fill * 2) + 0] = gameboy.core_dmg.apu.output_left * 4;
+        sample_buffer.get()[static_cast<usize>(buffer_fill * 2) + 1] = gameboy.core_dmg.apu.output_right * 4;
 
         buffer_fill += 1.0f / (turbo_active ? SPEED_SHIFT : 1.0f);
 
         if (buffer_fill >= gameboy.apu_.latency)
         {
             buffer_fill = 0;
-            while (as.queued() > gameboy.apu_.latency * AUDIO_CHANNELS)
-            {
-                SDL_Delay(1);
-            }
+            while (as.queued() > gameboy.apu_.latency * AUDIO_CHANNELS) {}
             as.queue(sample_buffer.get(), gameboy.apu_.latency * AUDIO_CHANNELS);
         }
     }

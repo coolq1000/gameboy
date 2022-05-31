@@ -21,6 +21,8 @@ class window
     SDL_Texture* texture;
     u32* pixels;
 
+    u32 last_time = 0;
+
     const u8* keys;
 
     gmb::ppu ppu;

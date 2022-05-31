@@ -2747,8 +2747,7 @@ void cpu_cycle_clock(cpu_t* cpu, bus_t* bus, usize cycles)
 
         if (cpu->clock.tima_clock >= tima_rate)
         {
-            bus->mmu->io.tima++;
-            if (!bus->mmu->io.tima)
+            if (!++bus->mmu->io.tima)
             {
                 bus->mmu->io.tima = bus->mmu->io.tma;
                 cpu_request(cpu, bus, INT_TIMER_INDEX);
@@ -2766,42 +2765,48 @@ void cpu_cycle_clock(cpu_t* cpu, bus_t* bus, usize cycles)
         }
     }
 
-//    u16 tac_mask;
-//    switch (bus->mmu->io.tac & 0x3)
-//    {
-//        case 0: tac_mask = BIT(9); break;
-//        case 1: tac_mask = BIT(3); break;
-//        case 2: tac_mask = BIT(5); break;
-//        case 3: tac_mask = BIT(7); break;
-//    }
-//
-//    tac_mask *= bus->mmu->io.tac & BIT(2);
-//
-//    u16 div_old = bus->mmu->io.div;
-//    bus->mmu->io.div++;
-//
-//    bool tac_bit_old = div_old & tac_mask;
-//    bool tac_bit = bus->mmu->io.div & tac_mask;
-//
-//    if (tac_bit_old && !tac_bit)
-//    {
-//        bus->mmu->io.tima++;
-//        if (bus->mmu->io.tima == 0) /* tima overflown */
-//        {
-//            bus->mmu->io.tima = bus->mmu->io.tma;
-//            cpu_request(cpu, bus, INT_TIMER_INDEX);
+//    for (u32 i = 0; i < cycles * (bus->mmu->io.current_speed ? 2 : 1); i++) {
+//        u16 tac_mask;
+//        switch (bus->mmu->io.tac & 0x3) {
+//            case 0:
+//                tac_mask = BIT(9);
+//                break;
+//            case 1:
+//                tac_mask = BIT(3);
+//                break;
+//            case 2:
+//                tac_mask = BIT(5);
+//                break;
+//            case 3:
+//                tac_mask = BIT(7);
+//                break;
 //        }
-//    }
-//    if (bus->apu->enabled)
-//    {
-//        u16 fs_mask = bus->mmu->io.current_speed ? BIT(14) : BIT(13);
 //
-//        bool fs_bit_old = div_old & fs_mask;
-//        bool fs_bit = bus->mmu->io.div & fs_mask;
+//        tac_mask *= bus->mmu->io.tac & BIT(2);
 //
-//        if (fs_bit_old && !fs_bit)
-//        {
-//            apu_frame_sequencer(bus->apu);
+//        u16 div_old = bus->mmu->io.div;
+//        bus->mmu->io.div++;
+//
+//        bool tac_bit_old = div_old & tac_mask;
+//        bool tac_bit = bus->mmu->io.div & tac_mask;
+//
+//        if (tac_bit_old && !tac_bit) {
+//            bus->mmu->io.tima++;
+//            if (bus->mmu->io.tima == 0) /* tima overflown */
+//            {
+//                bus->mmu->io.tima = bus->mmu->io.tma;
+//                cpu_request(cpu, bus, INT_TIMER_INDEX);
+//            }
+//        }
+//        if (bus->apu->enabled) {
+//            u16 fs_mask = bus->mmu->io.current_speed ? BIT(14) : BIT(13);
+//
+//            bool fs_bit_old = div_old & fs_mask;
+//            bool fs_bit = bus->mmu->io.div & fs_mask;
+//
+//            if (fs_bit_old && !fs_bit) {
+//                apu_frame_sequencer(bus->apu);
+//            }
 //        }
 //    }
 }

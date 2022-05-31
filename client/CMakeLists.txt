@@ -17,3 +17,4 @@ target_include_directories(client PRIVATE include deps/sdl2/include)
 target_link_libraries(client SDL2-static)
 
 #target_compile_options(client PRIVATE -Wno-switch)
+#target_link_options(client PRIVATE "-mconsole")

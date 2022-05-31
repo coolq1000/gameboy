@@ -362,12 +362,8 @@ void apu_poke(apu_t* apu, u16 address, u8 value)
         case MMAP_IO_NR10:
             apu->nr10 = value;
             apu->ch1.sweep.timer.period = (value & 0x70) >> 4;
-//            if (!apu->ch1.sweep.timer.period) apu->ch1.sweep.timer.period = 8; /* this will always make it sweep? */
-            if (value & BIT(3) && apu->ch1.sweep.decreasing && apu->ch1.sweep.calculated)
-            {
-                apu->ch1.enabled = false;
-            }
-
+//            if (!apu->ch1.sweep.timer.period) apu->ch1.sweep.timer.period = 8;
+            if (value & BIT(3) && apu->ch1.sweep.decreasing && apu->ch1.sweep.calculated) apu->ch1.enabled = false;
             apu->ch1.sweep.decreasing = value & BIT(3);
             apu->ch1.sweep.shift = value & 0x7;
             break;
