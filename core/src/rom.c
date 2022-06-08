@@ -84,7 +84,7 @@ void rom_load_save(rom_t* rom, const char* save_path)
 	}
 	else
 	{
-		printf("[-] unable to read rom save file at `%s`\n", save_path);
+//		printf("[-] unable to read rom save file at `%s`\n", save_path);
 	}
 }
 

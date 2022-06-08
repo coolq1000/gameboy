@@ -110,6 +110,128 @@ void cpu_ret(cpu_t* cpu, bus_t* bus)
 	cpu->registers.pc = cpu_pop(cpu, bus);
 }
 
+void cpu_add(cpu_t* cpu, bus_t* bus, u8 value) {
+    u32 result = cpu->registers.a + value;
+
+    cpu->registers.flag_z = IS_ZERO(result & 0xFF);
+    cpu->registers.flag_n = false;
+    cpu->registers.flag_h = ((cpu->registers.a & 0xF) + (value & 0xF)) > 0xF;
+    cpu->registers.flag_c = (result & 0x100) != 0;
+
+    cpu->registers.a = (u8)result;
+}
+
+void cpu_adc(cpu_t* cpu, bus_t* bus, u8 value) {
+    u32 result_full = cpu->registers.a + value + cpu->registers.flag_c;
+    u8 result = result_full;
+
+    cpu->registers.flag_z = IS_ZERO(result);
+    cpu->registers.flag_n = false;
+    cpu->registers.flag_h = ((cpu->registers.a & 0xF) + (value & 0xF) + cpu->registers.flag_c) > 0xF;
+    cpu->registers.flag_c = result_full > 0xFF;
+
+    cpu->registers.a = result;
+}
+
+void cpu_sbc(cpu_t* cpu, bus_t* bus, u8 value) {
+    i32 result_full = cpu->registers.a - value - cpu->registers.flag_c;
+    u8 result = result_full;
+
+    cpu->registers.flag_z = IS_ZERO(result);
+    cpu->registers.flag_n = true;
+    cpu->registers.flag_h = ((cpu->registers.a & 0xF) - (value & 0xF) - cpu->registers.flag_c) < 0;
+    cpu->registers.flag_c = result_full < 0;
+
+    cpu->registers.a = result;
+}
+
+void cpu_add_hl(cpu_t* cpu, bus_t* bus, u16 value) {
+    u32 result = cpu->registers.hl + value;
+
+    cpu->registers.flag_n = false;
+    cpu->registers.flag_h = (cpu->registers.hl & 0xFFF) + (value & 0xFFF) > 0xFFF;
+    cpu->registers.flag_c = (result & 0x10000) != 0;
+
+    cpu->registers.hl = result;
+}
+
+void cpu_add_sp(cpu_t* cpu, bus_t* bus, u8 value) {
+    i32 result = cpu->registers.sp + (i8)value;
+
+    cpu->registers.flag_z = false;
+    cpu->registers.flag_n = false;
+    cpu->registers.flag_h = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x10) == 0x10;
+    cpu->registers.flag_c = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x100) == 0x100;
+
+    cpu->registers.sp = result;
+}
+
+void cpu_sub(cpu_t* cpu, bus_t* bus, u8 value) {
+    i32 result = cpu->registers.a - value;
+    i32 carry = cpu->registers.a ^ value ^ result;
+
+    cpu->registers.a = (u8)result;
+
+    cpu->registers.flag_z = IS_ZERO(result);
+    cpu->registers.flag_n = true;
+    cpu->registers.flag_h = !IS_ZERO(carry & 0x10);
+    cpu->registers.flag_c = !IS_ZERO(carry & 0x100);
+}
+
+void cpu_dec(cpu_t* cpu, bus_t* bus, u8* reg) {
+    (*reg)--;
+
+    cpu->registers.flag_z = IS_ZERO(*reg);
+    cpu->registers.flag_n = true;
+    cpu->registers.flag_h = (*reg & 0xF) == 0xF;
+}
+
+void cpu_rl(cpu_t* cpu, bus_t* bus, u8* reg) {
+    bool wrap = GET_BIT(*reg, 7);
+
+    u8 result = (*reg << 1) | cpu->registers.flag_c;
+    *reg = result;
+
+    cpu->registers.flag_z = IS_ZERO(result);
+    cpu->registers.flag_n = false;
+    cpu->registers.flag_h = false;
+    cpu->registers.flag_c = wrap;
+}
+
+void cpu_rlc(cpu_t* cpu, bus_t* bus, u8* reg) {
+    u8 carry_flag = GET_BIT(*reg, 7);
+    u8 result = (*reg << 1) | carry_flag;
+
+    *reg = result;
+
+    cpu->registers.flag_z = IS_ZERO(result);
+    cpu->registers.flag_n = false;
+    cpu->registers.flag_h = false;
+    cpu->registers.flag_c = carry_flag;
+}
+
+void cpu_rrc(cpu_t* cpu, bus_t* bus, u8* reg) {
+    u8 carry_flag = GET_BIT(*reg, 0);
+    u8 result = (*reg >> 1) | (carry_flag << 7);
+
+    *reg = result;
+
+    cpu->registers.flag_z = IS_ZERO(result);
+    cpu->registers.flag_n = false;
+    cpu->registers.flag_h = false;
+    cpu->registers.flag_c = carry_flag;
+}
+
+void cpu_ld_hl(cpu_t* cpu, bus_t* bus, u8 value) {
+    i32 result = cpu->registers.sp + (i8)value;
+    cpu->registers.hl = result;
+
+    cpu->registers.flag_z = false;
+    cpu->registers.flag_n = false;
+    cpu->registers.flag_h = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x10) == 0x10;
+    cpu->registers.flag_c = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x100) == 0x100;
+}
+
 void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 {
 	/* hdma transfer */
@@ -153,31 +275,20 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.b & 0xF) < ((cpu->registers.b - 1) & 0xF);
 		break;
 	case 0x05: /* dec b */
-		cpu->registers.b--;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.b);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (cpu->registers.b & 0xF) == 0xF;
+        cpu_dec(cpu, bus, &cpu->registers.b);
 		break;
 	case 0x06: /* ld b, d8 */
 		cpu->registers.b = imm8;
 		break;
 	case 0x07: /* rlca */
-		tmp8 = cpu->registers.a >> 7;
-		cpu->registers.a = (cpu->registers.a << 1) | tmp8;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = false;
-		cpu->registers.flag_c = tmp8;
+        cpu_rlc(cpu, bus, &cpu->registers.a);
+        cpu->registers.flag_z = false;
 		break;
 	case 0x08: /* ld (a16), sp */
 		bus_poke16(bus, imm16, cpu->registers.sp);
 		break;
 	case 0x09: /* add hl, bc */
-		tmp16 = cpu->registers.hl;
-		cpu->registers.hl += cpu->registers.bc;
-		cpu->registers.flag_n = 0;
-		cpu->registers.flag_h = (cpu->registers.hl & 0xFFF) < (tmp16 & 0xFFF);
-		cpu->registers.flag_c = (cpu->registers.hl & 0xFFFF) < (tmp16 & 0xFFFF);
+        cpu_add_hl(cpu, bus, cpu->registers.bc);
 		break;
 	case 0x0A: /* ld a, (bc) */
 		cpu->registers.a = bus_peek8(bus, cpu->registers.bc);
@@ -192,25 +303,16 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.c & 0xF) < ((cpu->registers.c - 1) & 0xF);
 		break;
 	case 0x0D: /* dec c */
-		cpu->registers.c--;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.c);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (cpu->registers.c & 0xF) == 0xF;
+        cpu_dec(cpu, bus, &cpu->registers.c);
 		break;
 	case 0x0E: /* ld c, d8 */
 		cpu->registers.c = imm8;
 		break;
 	case 0x0F: /* rrca */
-		tmp8 = cpu->registers.a & 0x1;
-		cpu->registers.a = (cpu->registers.a >> 1) | (tmp8 << 7);
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = false;
-		cpu->registers.flag_c = tmp8;
+        cpu_rrc(cpu, bus, &cpu->registers.a);
+        cpu->registers.flag_z = false;
 		break;
 	case 0x10: /* stop 0 */
-//        printf("attempted stop");
-//        exit(EXIT_FAILURE);
 		if (cpu->cgb.enabled)
 		{
 			if (bus->mmu->io.prepare_speed_switch & 0x1)
@@ -232,7 +334,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		else
 		{
             /* fixme: commented out for now... */
-			cpu->stopped = true;
+//			cpu->stopped = true;
 		}
 
 		/* reset div timer */
@@ -254,31 +356,20 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.d & 0xF) < ((cpu->registers.d - 1) & 0xF);
 		break;
 	case 0x15: /* dec d */
-		cpu->registers.d--;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.d);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (cpu->registers.d & 0xF) == 0xF;
+        cpu_dec(cpu, bus, &cpu->registers.d);
 		break;
 	case 0x16: /* ld d, d8 */
 		cpu->registers.d = imm8;
 		break;
 	case 0x17: /* rla */
-		tmp8 = cpu->registers.a;
-		cpu->registers.a = (cpu->registers.a << 1) | cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = false;
-		cpu->registers.flag_c = tmp8 >> 7;
+        cpu_rl(cpu, bus, &cpu->registers.a);
+        cpu->registers.flag_z = false;
 		break;
 	case 0x18: /* jr r8 */
 		cpu->registers.pc += (i8)imm8;
 		break;
 	case 0x19: /* add hl, de */
-		tmp16 = cpu->registers.hl;
-		cpu->registers.hl += cpu->registers.de;
-		cpu->registers.flag_n = 0;
-		cpu->registers.flag_h = (cpu->registers.hl & 0xFFF) < (tmp16 & 0xFFF);
-		cpu->registers.flag_c = (cpu->registers.hl & 0xFFFF) < (tmp16 & 0xFFFF);
+        cpu_add_hl(cpu, bus, cpu->registers.de);
 		break;
 	case 0x1A: /* ld a, (de) */
 		cpu->registers.a = bus_peek8(bus, cpu->registers.de);
@@ -293,10 +384,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.e & 0xF) < ((cpu->registers.e - 1) & 0xF);
 		break;
 	case 0x1D: /* dec e */
-		cpu->registers.e--;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.e);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (cpu->registers.e & 0xF) == 0xF;
+        cpu_dec(cpu, bus, &cpu->registers.e);
 		break;
 	case 0x1E: /* ld e, d8 */
 		cpu->registers.e = imm8;
@@ -332,10 +420,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.h & 0xF) < ((cpu->registers.h - 1) & 0xF);
 		break;
 	case 0x25: /* dec h */
-		cpu->registers.h--;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.h);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (cpu->registers.h & 0xF) == 0xF;
+        cpu_dec(cpu, bus, &cpu->registers.h);
 		break;
 	case 0x26: /* ld h, d8 */
 		cpu->registers.h = imm8;
@@ -370,11 +455,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		}
 		break;
 	case 0x29: /* add hl, hl */
-		tmp16 = cpu->registers.hl;
-		cpu->registers.hl += cpu->registers.hl;
-		cpu->registers.flag_n = 0;
-		cpu->registers.flag_h = (cpu->registers.hl & 0xFFF) < (tmp16 & 0xFFF);
-		cpu->registers.flag_c = (cpu->registers.hl & 0xFFFF) < (tmp16 & 0xFFFF);
+        cpu_add_hl(cpu, bus, cpu->registers.hl);
 		break;
 	case 0x2A: /* ld a, (hl+) */
 		cpu->registers.a = bus_peek8(bus, cpu->registers.hl++);
@@ -389,10 +470,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.l & 0xF) < ((cpu->registers.l - 1) & 0xF);
 		break;
 	case 0x2D: /* dec l */
-		cpu->registers.l--;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.l);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (cpu->registers.l & 0xF) == 0xF;
+        cpu_dec(cpu, bus, &cpu->registers.l);
 		break;
 	case 0x2E: /* ld l, d8 */
 		cpu->registers.l = imm8;
@@ -448,11 +526,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		}
 		break;
 	case 0x39: /* add hl, sp */
-		tmp16 = cpu->registers.hl;
-		cpu->registers.hl += cpu->registers.sp;
-		cpu->registers.flag_n = 0;
-		cpu->registers.flag_h = (cpu->registers.hl & 0xFFF) < (tmp16 & 0xFFF);
-		cpu->registers.flag_c = (cpu->registers.hl & 0xFFFF) < (tmp16 & 0xFFFF);
+        cpu_add_hl(cpu, bus, cpu->registers.sp);
 		break;
 	case 0x3A: /* ld a, (hl-) */
 		cpu->registers.a = bus_peek8(bus, cpu->registers.hl--);
@@ -467,10 +541,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.a & 0xF) < ((cpu->registers.a - 1) & 0xF);
 		break;
 	case 0x3D: /* dec a */
-		cpu->registers.a--;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (cpu->registers.l & 0xF) == 0xF;
+		cpu_dec(cpu, bus, &cpu->registers.a);
 		break;
 	case 0x3E: /* ld a, d8 */
 		cpu->registers.a = imm8;
@@ -673,260 +744,100 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.a = cpu->registers.a;
 		break;
 	case 0x80: /* add a, b */
-		tmp8 = cpu->registers.a + cpu->registers.b;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_add(cpu, bus, cpu->registers.b);
 		break;
 	case 0x81: /* add a, c */
-		tmp8 = cpu->registers.a + cpu->registers.c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_add(cpu, bus, cpu->registers.c);
 		break;
 	case 0x82: /* add a, d */
-		tmp8 = cpu->registers.a + cpu->registers.d;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_add(cpu, bus, cpu->registers.d);
 		break;
 	case 0x83: /* add a, e */
-		tmp8 = cpu->registers.a + cpu->registers.e;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_add(cpu, bus, cpu->registers.e);
 		break;
 	case 0x84: /* add a, h */
-		tmp8 = cpu->registers.a + cpu->registers.h;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_add(cpu, bus, cpu->registers.h);
 		break;
 	case 0x85: /* add a, l */
-		tmp8 = cpu->registers.a + cpu->registers.l;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_add(cpu, bus, cpu->registers.l);
 		break;
 	case 0x86: /* add a, (hl) */
-		tmp8 = cpu->registers.a + bus_peek8(bus, cpu->registers.hl);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_add(cpu, bus, bus_peek8(bus, cpu->registers.hl));
 		break;
 	case 0x87: /* add a, a */
-		tmp8 = cpu->registers.a + cpu->registers.a;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
-		break;
+        cpu_add(cpu, bus, cpu->registers.a);
+        break;
 	case 0x88: /* adc a, b */
-		tmp8 = cpu->registers.a + cpu->registers.b + cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_adc(cpu, bus, cpu->registers.b);
 		break;
 	case 0x89: /* adc a, c */
-		tmp8 = cpu->registers.a + cpu->registers.c + cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_adc(cpu, bus, cpu->registers.c);
 		break;
 	case 0x8A: /* adc a, d */
-		tmp8 = cpu->registers.a + cpu->registers.d + cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_adc(cpu, bus, cpu->registers.d);
 		break;
 	case 0x8B: /* adc a, e */
-		tmp8 = cpu->registers.a + cpu->registers.e + cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_adc(cpu, bus, cpu->registers.e);
 		break;
 	case 0x8C: /* adc a, h */
-		tmp8 = cpu->registers.a + cpu->registers.h + cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_adc(cpu, bus, cpu->registers.h);
 		break;
 	case 0x8D: /* adc a, l */
-		tmp8 = cpu->registers.a + cpu->registers.l + cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_adc(cpu, bus, cpu->registers.l);
 		break;
 	case 0x8E: /* adc a, (hl) */
-		tmp8 = cpu->registers.a + bus_peek8(bus, cpu->registers.hl) + cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_adc(cpu, bus, bus_peek8(bus, cpu->registers.hl));
 		break;
 	case 0x8F: /* adc a, a */
-		tmp8 = cpu->registers.a + cpu->registers.a + cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_adc(cpu, bus, cpu->registers.a);
 		break;
 	case 0x90: /* sub b */
-		tmp8 = cpu->registers.a - cpu->registers.b;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sub(cpu, bus, cpu->registers.b);
 		break;
 	case 0x91: /* sub c */
-		tmp8 = cpu->registers.a - cpu->registers.c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sub(cpu, bus, cpu->registers.c);
 		break;
 	case 0x92: /* sub d */
-		tmp8 = cpu->registers.a - cpu->registers.d;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sub(cpu, bus, cpu->registers.d);
 		break;
 	case 0x93: /* sub e */
-		tmp8 = cpu->registers.a - cpu->registers.e;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sub(cpu, bus, cpu->registers.e);
 		break;
 	case 0x94: /* sub h */
-		tmp8 = cpu->registers.a - cpu->registers.h;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sub(cpu, bus, cpu->registers.h);
 		break;
 	case 0x95: /* sub l */
-		tmp8 = cpu->registers.a - cpu->registers.l;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sub(cpu, bus, cpu->registers.l);
 		break;
 	case 0x96: /* sub (hl) */
-		tmp8 = cpu->registers.a - bus_peek8(bus, cpu->registers.hl);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sub(cpu, bus, bus_peek8(bus, cpu->registers.hl));
 		break;
 	case 0x97: /* sub a */
-		tmp8 = cpu->registers.a - cpu->registers.a;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sub(cpu, bus, cpu->registers.a);
 		break;
 	case 0x98: /* sbc a, b */
-		tmp8 = cpu->registers.a - (cpu->registers.b + cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sbc(cpu, bus, cpu->registers.b);
 		break;
 	case 0x99: /* sbc a, c */
-		tmp8 = cpu->registers.a - (cpu->registers.c + cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sbc(cpu, bus, cpu->registers.c);
 		break;
 	case 0x9A: /* sbc a, d */
-		tmp8 = cpu->registers.a - (cpu->registers.d + cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sbc(cpu, bus, cpu->registers.d);
 		break;
 	case 0x9B: /* sbc a, e */
-		tmp8 = cpu->registers.a - (cpu->registers.e + cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sbc(cpu, bus, cpu->registers.e);
 		break;
 	case 0x9C: /* sbc a, h */
-		tmp8 = cpu->registers.a - (cpu->registers.h + cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sbc(cpu, bus, cpu->registers.h);
 		break;
 	case 0x9D: /* sbc a, l */
-		tmp8 = cpu->registers.a - (cpu->registers.l + cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sbc(cpu, bus, cpu->registers.l);
 		break;
 	case 0x9E: /* sbc a, (hl) */
-		tmp8 = cpu->registers.a - (bus_peek8(bus, cpu->registers.hl) + cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sbc(cpu, bus, bus_peek8(bus, cpu->registers.hl));
 		break;
 	case 0x9F: /* sbc a, a */
-		tmp8 = cpu->registers.a - (cpu->registers.a + cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+        cpu_sbc(cpu, bus, cpu->registers.a);
 		break;
 	case 0xA0: /* and b */
 		cpu->registers.a &= cpu->registers.b;
@@ -1217,12 +1128,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu_call(cpu, bus, imm16);
 		break;
 	case 0xCE: /* adc a, d8 */
-		tmp8 = cpu->registers.a + imm8 + cpu->registers.flag_c;
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = (tmp8 & 0xF) < (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) < (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+		cpu_adc(cpu, bus, imm8);
 		break;
 	case 0xCF: /* rst 08h */
 		cpu_call(cpu, bus, 0x08);
@@ -1292,12 +1198,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		}
 		break;
 	case 0xDE: /* sbc a, d8 */
-		tmp8 = cpu->registers.a - (imm8 + cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(tmp8);
-		cpu->registers.flag_n = true;
-		cpu->registers.flag_h = (tmp8 & 0xF) > (cpu->registers.a & 0xF);
-		cpu->registers.flag_c = (tmp8 & 0xFF) > (cpu->registers.a & 0xFF);
-		cpu->registers.a = tmp8;
+		cpu_sbc(cpu, bus, imm8);
 		break;
 	case 0xDF: /* rst 18h */
 		cpu_call(cpu, bus, 0x18);
@@ -1325,12 +1226,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu_call(cpu, bus, 0x20);
 		break;
 	case 0xE8: /* add sp, r8 */
-        tmp8 = cpu->registers.sp;
-		cpu->registers.sp += imm8;
-        cpu->registers.flag_z = false;
-        cpu->registers.flag_n = false;
-        cpu->registers.flag_h = (cpu->registers.sp & 0xF) < (tmp8 & 0xF);
-        cpu->registers.flag_c = (cpu->registers.sp & 0xFF) < (tmp8 & 0xFF);
+        cpu_add_sp(cpu, bus, imm8);
 		break;
 	case 0xE9: /* jp hl */
 		cpu->registers.pc = cpu->registers.hl;
@@ -1374,11 +1270,12 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu_call(cpu, bus, 0x30);
 		break;
 	case 0xF8: /* ld hl, sp+r8 */
-		cpu->registers.hl = cpu->registers.sp + (i8)imm8;
-		cpu->registers.flag_z = false;
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = ((cpu->registers.sp + imm8) & 0xF) < (cpu->registers.sp & 0xF);
-		cpu->registers.flag_c = cpu->registers.sp + imm8 < cpu->registers.sp;
+        cpu_ld_hl(cpu, bus, imm8);
+//		cpu->registers.hl = cpu->registers.sp + (i8)imm8;
+//		cpu->registers.flag_z = false;
+//		cpu->registers.flag_n = false;
+//		cpu->registers.flag_h = ((cpu->registers.sp + imm8) & 0xF) < (cpu->registers.sp & 0xF);
+//		cpu->registers.flag_c = cpu->registers.sp + imm8 < cpu->registers.sp;
 		break;
 	case 0xF9: /* ld sp, hl */
 		cpu->registers.sp = cpu->registers.hl;
@@ -1534,8 +1431,9 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 		break;
 	case 0x0E: /* rrc (hl) */
 		tmp8 = bus_peek8(bus, cpu->registers.hl) & 0x1;
-		bus_poke8(bus, cpu->registers.hl, (bus_peek8(bus, cpu->registers.hl) >> 1) | tmp8);
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.l);
+        tmp16 = (bus_peek8(bus, cpu->registers.hl) >> 1) | tmp8;
+		bus_poke8(bus, cpu->registers.hl, tmp16);
+		cpu->registers.flag_z = IS_ZERO(tmp16);
 		cpu->registers.flag_n = false;
 		cpu->registers.flag_h = false;
 		cpu->registers.flag_c = tmp8;
@@ -1714,7 +1612,7 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 	case 0x25: /* sla l */
 		cpu->registers.flag_c = cpu->registers.l >> 7;
 		cpu->registers.l = cpu->registers.l << 1;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
+		cpu->registers.flag_z = IS_ZERO(cpu->registers.l);
 		cpu->registers.flag_n = false;
 		cpu->registers.flag_h = false;
 		break;

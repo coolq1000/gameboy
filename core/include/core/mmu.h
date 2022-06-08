@@ -5,10 +5,6 @@
 #include "rom.h"
 #include "util.h"
 
-#define GET_BIT(value, index) (((value) & (1 << index)) != 0)
-#define SET_BIT(value, index) ((value) | (1 << index))
-#define CLEAR_BIT(value, index) ((value) & ~(1 << index))
-
 #define VRAM_SIZE 0x2000
 #define XRAM_SIZE 0x2000
 #define WRAM_SIZE 0x1000

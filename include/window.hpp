@@ -12,11 +12,11 @@ constexpr auto lcd_height = 144;
 constexpr auto window_width = lcd_width * 2;
 constexpr auto window_height = lcd_height * 2;
 
-class window
+struct Window
 {
     bool running;
 
-    SDL_Window* window_;
+    SDL_Window* handle;
     SDL_Renderer* renderer;
     SDL_Texture* texture;
     std::unique_ptr<u32[]> pixels;
@@ -25,12 +25,10 @@ class window
 
     const u8* keys;
 
-    gmb::ppu ppu;
+    gmb::PPU ppu;
 
-public:
-
-    window(gmb::ppu& ppu);
-    ~window();
+    Window(gmb::PPU& ppu);
+    ~Window();
 
     bool get_key(SDL_Scancode key);
 

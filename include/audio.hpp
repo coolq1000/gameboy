@@ -10,16 +10,14 @@
 #define AUDIO_FORMAT AUDIO_S16SYS
 #define AUDIO_CHANNELS 2
 
-class audio
+struct Audio
 {
     SDL_AudioDeviceID device;
 
-public:
+    gmb::APU apu;
 
-    gmb::apu apu;
-
-    audio(gmb::apu& _apu);
-    ~audio();
+    Audio(gmb::APU& apu);
+    ~Audio();
 
     void queue(i16* sample, usize length);
     usize queued();

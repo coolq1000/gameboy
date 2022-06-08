@@ -14,6 +14,10 @@
 #define BIT(x) (1 << (x))
 #define MASK(x) (~BIT(x))
 
+#define GET_BIT(value, index) (((value) & (1 << index)) != 0)
+#define SET_BIT(value, index) ((value) | (1 << index))
+#define CLEAR_BIT(value, index) ((value) & ~(1 << index))
+
 /* types */
 
 #define U8_MIN  UINT8_MIN

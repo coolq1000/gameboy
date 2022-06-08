@@ -2,11 +2,11 @@
 
 #include <cmath>
 
-window::window(gmb::ppu& ppu) : ppu(ppu)
+Window::Window(gmb::PPU& ppu) : ppu(ppu)
 {
     SDL_Init(SDL_INIT_VIDEO);
-    window_ = SDL_CreateWindow("gameboy", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    renderer = SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED);
+    handle = SDL_CreateWindow("gameboy", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    renderer = SDL_CreateRenderer(handle, -1, SDL_RENDERER_ACCELERATED);
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, lcd_width, lcd_height);
 
     SDL_RenderSetLogicalSize(renderer, lcd_width, lcd_height);
@@ -16,19 +16,19 @@ window::window(gmb::ppu& ppu) : ppu(ppu)
     running = true;
 }
 
-window::~window()
+Window::~Window()
 {
-    SDL_DestroyWindow(window_);
+    SDL_DestroyWindow(handle);
     SDL_DestroyRenderer(renderer);
     SDL_Quit();
 }
 
-bool window::get_key(SDL_Scancode key)
+bool Window::get_key(SDL_Scancode key)
 {
     return keys[key];
 }
 
-void window::process()
+void Window::process()
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -44,11 +44,11 @@ void window::process()
     keys = reinterpret_cast<const u8*>(SDL_GetKeyboardState(NULL));
 }
 
-void window::update()
+void Window::update()
 {
     for (usize i = 0; i < lcd_width * lcd_height; i++)
     {
-        pixels.get()[i] = shader(ppu.core_ppu.lcd[i]);
+        pixels.get()[i] = shader(ppu.core.ppu.lcd[i]);
     }
 
     SDL_UpdateTexture(texture, NULL, pixels.get(), lcd_width * sizeof(u32));
@@ -67,17 +67,17 @@ void window::update()
     }
 }
 
-bool window::open()
+bool Window::open()
 {
     return running;
 }
 
-float window::lerp(float a, float b, float t)
+float Window::lerp(float a, float b, float t)
 {
     return a + t * (b - a);
 }
 
-u32 window::shader(u32 pixel)
+u32 Window::shader(u32 pixel)
 {
     const static float saturation = 0.95f;
     const static float brightness = 0.03f;
@@ -109,7 +109,7 @@ u32 window::shader(u32 pixel)
     return (a << 24) | (r << 16) | (g << 8) | b;
 }
 
-bool window::focused()
+bool Window::focused()
 {
-    return SDL_GetWindowFlags(window_) & SDL_WINDOW_INPUT_FOCUS;
+    return SDL_GetWindowFlags(handle) & SDL_WINDOW_INPUT_FOCUS;
 }

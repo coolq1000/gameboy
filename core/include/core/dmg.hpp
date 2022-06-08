@@ -21,92 +21,82 @@ namespace gmb_c
 
 namespace gmb
 {
-    class apu
-    {
-    public:
+    struct DMG;
 
-        gmb_c::apu_t& core_apu;
+    struct APU {
+        gmb_c::dmg_t& core;
 
         usize& sample_rate;
         usize& latency;
 
-        apu(gmb_c::apu_t& _apu) : core_apu(_apu), sample_rate(_apu.sample_rate), latency(_apu.latency)
-        {}
-
-        void update()
-        {
-//            gmb_c::apu_update(&core_apu);
-        }
+        APU(gmb_c::dmg_t& core)
+            : core(core)
+            , sample_rate(core.apu.sample_rate)
+            , latency(core.apu.latency) {}
     };
 
-    class mmu
-    {
-    public:
+    struct MMU {
+        gmb_c::dmg_t& core;
 
-        gmb_c::mmu_t& core_mmu;
-
-        mmu(gmb_c::mmu_t& _mmu) : core_mmu(_mmu)
-        {}
+        MMU(gmb_c::dmg_t& core) : core(core) {}
     };
 
-    class ppu
-    {
-    public:
+    struct PPU {
+        gmb_c::dmg_t& core;
 
-        gmb_c::ppu_t& core_ppu;
-
-        ppu(gmb_c::ppu_t& _ppu) : core_ppu(_ppu)
-        {}
+        PPU(gmb_c::dmg_t& core) : core(core) {}
     };
 
-    class rom
+    struct ROM
     {
         const std::string& cart_path, save_path;
 
-    public:
-
         gmb_c::rom_t core_rom;
 
-        rom(const std::string& _cart_path, const std::string& _save_path) : cart_path(_cart_path), save_path(_save_path)
-        {
-            gmb_c::rom_init(&core_rom, _cart_path.c_str(), _save_path.c_str());
+        ROM(const std::string& _cart_path, const std::string& _save_path)
+            : cart_path(_cart_path)
+            , save_path(_save_path) {
+            gmb_c::rom_init(
+                    &core_rom,
+                    _cart_path.c_str(),
+                    _save_path.c_str());
         }
 
-        ~rom()
-        {
+        ~ROM() {
             gmb_c::rom_free(&core_rom);
         }
 
-        void dump_save(mmu& _mmu)
-        {
-            gmb_c::rom_dump_save(&core_rom, &_mmu.core_mmu, save_path.c_str());
+        void dump_save(MMU& mmu) {
+            gmb_c::rom_dump_save(&core_rom,
+                                 &mmu.core.mmu,
+                                 save_path.c_str());
         }
     };
 
-	class dmg
-    {
-    public:
+	struct DMG {
+        gmb_c::dmg_t core;
 
-        gmb_c::dmg_t core_dmg;
+        APU apu;
+        MMU mmu;
+        PPU ppu;
 
-        apu apu_;
-        mmu mmu_;
-        ppu ppu_;
-
-        dmg(rom& _rom, bool _is_cgb, usize _sample_rate, usize _latency) : apu_(core_dmg.apu), mmu_(core_dmg.mmu), ppu_(core_dmg.ppu)
-        {
-            gmb_c::dmg_init(&core_dmg, &_rom.core_rom, _is_cgb, _sample_rate, _latency);
+        DMG(ROM& rom, bool is_cgb, usize sample_rate, usize latency)
+            : apu(core)
+            , mmu(core)
+            , ppu(core) {
+            gmb_c::dmg_init(
+                    &core,
+                    &rom.core_rom, is_cgb,
+                    sample_rate,
+                    latency);
         }
 
-        ~dmg()
-        {
-            gmb_c::dmg_free(&core_dmg);
+        ~DMG() {
+            gmb_c::dmg_free(&core);
         }
 
-        void cycle()
-        {
-            gmb_c::dmg_cycle(&core_dmg);
-            apu_.update();
+        void cycle() {
+            gmb_c::dmg_cycle(&core);
         }
     };
 }
