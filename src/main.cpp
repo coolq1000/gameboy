@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-	Gameboy gb(cart_path, save_path, is_cgb);
+	Gameboy gb(cart_path.string(), save_path.string(), is_cgb);
     gb.run();
 	return EXIT_SUCCESS;
 }

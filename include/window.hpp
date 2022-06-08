@@ -2,6 +2,7 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
+#include <memory>
 #include <core/dmg.hpp>
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
