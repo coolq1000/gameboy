@@ -17,4 +17,4 @@ build-debug/
 build-release/
 
 # roms
-roms/
+res/
