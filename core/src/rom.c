@@ -9,7 +9,7 @@
 #define ROM_MANUFACTURER_OFFSET 0x13F
 #define ROM_LICENSE_OFFSET 0x144
 
-void rom_init(rom_t* rom, const char* cart_path, const char* save_path)
+void rom_init(rom_t *rom, const char *cart_path, const char *save_path)
 {
 	/* zero out data before loading */
 	rom->cart_data = NULL;
@@ -22,19 +22,24 @@ void rom_init(rom_t* rom, const char* cart_path, const char* save_path)
 	rom_load_save(rom, save_path);
 }
 
-void rom_free(rom_t* rom)
+void rom_free(rom_t *rom)
 {
-	if (rom->cart_data) free(rom->cart_data);
-	if (rom->save_data) free(rom->save_data);
+	if (rom->cart_data)
+		free(rom->cart_data);
+	if (rom->save_data)
+		free(rom->save_data);
 }
 
-void rom_load_cart(rom_t* rom, const char* cart_path)
+void rom_load_cart(rom_t *rom, const char *cart_path)
 {
 	/* free if existing */
-	if (rom->cart_data) { free(rom->cart_data); }
+	if (rom->cart_data)
+	{
+		free(rom->cart_data);
+	}
 
 	/* load rom from file */
-	FILE* rom_file = fopen(cart_path, "rb");
+	FILE *rom_file = fopen(cart_path, "rb");
 
 	if (rom_file)
 	{
@@ -44,7 +49,7 @@ void rom_load_cart(rom_t* rom, const char* cart_path)
 		rewind(rom_file);
 
 		/* allocate & read into buffer */
-		rom->cart_data = (u8*)malloc(rom->cart_size);
+		rom->cart_data = (u8 *)malloc(rom->cart_size);
 		fread(rom->cart_data, rom->cart_size, sizeof(u8), rom_file);
 
 		fclose(rom_file);
@@ -61,13 +66,16 @@ void rom_load_cart(rom_t* rom, const char* cart_path)
 	}
 }
 
-void rom_load_save(rom_t* rom, const char* save_path)
+void rom_load_save(rom_t *rom, const char *save_path)
 {
 	/* free if existing */
-	if (rom->save_data) { free(rom->save_data); }
+	if (rom->save_data)
+	{
+		free(rom->save_data);
+	}
 
 	/* load save from file */
-	FILE* save_file = fopen(save_path, "rb");
+	FILE *save_file = fopen(save_path, "rb");
 
 	if (save_file)
 	{
@@ -77,24 +85,24 @@ void rom_load_save(rom_t* rom, const char* save_path)
 		rewind(save_file);
 
 		/* allocate & read into buffer */
-		rom->save_data = (u8*)malloc(rom->save_size);
+		rom->save_data = (u8 *)malloc(rom->save_size);
 		fread(rom->save_data, rom->save_size, sizeof(u8), save_file);
 
 		fclose(save_file);
 	}
 	else
 	{
-//		printf("[-] unable to read rom save file at `%s`\n", save_path);
+		//		printf("[-] unable to read rom save file at `%s`\n", save_path);
 	}
 }
 
-void rom_dump_save(rom_t* rom, void* mmu, const char* save_path)
+void rom_dump_save(rom_t *rom, void *mmu, const char *save_path)
 {
-	mmu_t* mmu_ = (mmu_t*)mmu;
+	mmu_t *mmu_ = (mmu_t *)mmu;
 	if (*save_path)
 	{
 		/* load save from file */
-		FILE* save_file = fopen(save_path, "wb");
+		FILE *save_file = fopen(save_path, "wb");
 
 		if (save_file)
 		{

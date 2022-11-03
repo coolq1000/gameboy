@@ -6,9 +6,9 @@
 #include "core/mmu.h"
 #include "core/ppu.h"
 
-usize tac_cycles[4] = { 1024, 16, 64, 256 };
+usize tac_cycles[4] = {1024, 16, 64, 256};
 
-void cpu_init(cpu_t* cpu, bool is_cgb)
+void cpu_init(cpu_t *cpu, bool is_cgb)
 {
 	/* setup registers */
 	cpu->registers.af = 0x01B0;
@@ -38,7 +38,7 @@ void cpu_init(cpu_t* cpu, bool is_cgb)
 	}
 }
 
-void cpu_fault(cpu_t* cpu, bus_t* bus, opc_t* opc, const char* message)
+void cpu_fault(cpu_t *cpu, bus_t *bus, opc_t *opc, const char *message)
 {
 	/* reverse opcode state differential */
 	cpu->registers.pc -= opc->length;
@@ -54,12 +54,12 @@ void cpu_fault(cpu_t* cpu, bus_t* bus, opc_t* opc, const char* message)
 	exit(EXIT_FAILURE);
 }
 
-void cpu_trace(cpu_t* cpu, opc_t* opc)
+void cpu_trace(cpu_t *cpu, opc_t *opc)
 {
 	printf("[+] 0x%X: %s\n", cpu->registers.pc, opc->disasm);
 }
 
-void cpu_stack_trace(cpu_t* cpu, bus_t* bus)
+void cpu_stack_trace(cpu_t *cpu, bus_t *bus)
 {
 	for (usize i = 0; i < 9; i++)
 	{
@@ -68,7 +68,7 @@ void cpu_stack_trace(cpu_t* cpu, bus_t* bus)
 	}
 }
 
-void cpu_dump(cpu_t* cpu)
+void cpu_dump(cpu_t *cpu)
 {
 	printf("	af: %04X\n", cpu->registers.af);
 	printf("	bc: %04X\n", cpu->registers.bc);
@@ -79,7 +79,7 @@ void cpu_dump(cpu_t* cpu)
 	printf("   ime: %s\n", cpu->interrupt.master ? "enabled" : "disabled");
 }
 
-void cpu_push(cpu_t* cpu, bus_t* bus, u16 value)
+void cpu_push(cpu_t *cpu, bus_t *bus, u16 value)
 {
 	/* decrement stack */
 	cpu->registers.sp -= sizeof(u16);
@@ -88,7 +88,7 @@ void cpu_push(cpu_t* cpu, bus_t* bus, u16 value)
 	bus_poke16(bus, cpu->registers.sp, value);
 }
 
-u16 cpu_pop(cpu_t* cpu, bus_t* bus)
+u16 cpu_pop(cpu_t *cpu, bus_t *bus)
 {
 	/* read value from stack */
 	u16 value = bus_peek16(bus, cpu->registers.sp);
@@ -99,140 +99,203 @@ u16 cpu_pop(cpu_t* cpu, bus_t* bus)
 	return value;
 }
 
-void cpu_call(cpu_t* cpu, bus_t* bus, u16 address)
+void cpu_call(cpu_t *cpu, bus_t *bus, u16 address)
 {
 	cpu_push(cpu, bus, cpu->registers.pc);
 	cpu->registers.pc = address;
 }
 
-void cpu_ret(cpu_t* cpu, bus_t* bus)
+void cpu_ret(cpu_t *cpu, bus_t *bus)
 {
 	cpu->registers.pc = cpu_pop(cpu, bus);
 }
 
-void cpu_add(cpu_t* cpu, bus_t* bus, u8 value) {
-    u32 result = cpu->registers.a + value;
+void cpu_add(cpu_t *cpu, bus_t *bus, u8 value)
+{
+	u32 result = cpu->registers.a + value;
 
-    cpu->registers.flag_z = IS_ZERO(result & 0xFF);
-    cpu->registers.flag_n = false;
-    cpu->registers.flag_h = ((cpu->registers.a & 0xF) + (value & 0xF)) > 0xF;
-    cpu->registers.flag_c = (result & 0x100) != 0;
+	cpu->registers.flag_z = IS_ZERO(result & 0xFF);
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = ((cpu->registers.a & 0xF) + (value & 0xF)) > 0xF;
+	cpu->registers.flag_c = (result & 0x100) != 0;
 
-    cpu->registers.a = (u8)result;
+	cpu->registers.a = (u8)result;
 }
 
-void cpu_adc(cpu_t* cpu, bus_t* bus, u8 value) {
-    u32 result_full = cpu->registers.a + value + cpu->registers.flag_c;
-    u8 result = result_full;
+void cpu_adc(cpu_t *cpu, bus_t *bus, u8 value)
+{
+	u32 result_full = cpu->registers.a + value + cpu->registers.flag_c;
+	u8 result = result_full;
 
-    cpu->registers.flag_z = IS_ZERO(result);
-    cpu->registers.flag_n = false;
-    cpu->registers.flag_h = ((cpu->registers.a & 0xF) + (value & 0xF) + cpu->registers.flag_c) > 0xF;
-    cpu->registers.flag_c = result_full > 0xFF;
+	cpu->registers.flag_z = IS_ZERO(result);
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = ((cpu->registers.a & 0xF) + (value & 0xF) + cpu->registers.flag_c) > 0xF;
+	cpu->registers.flag_c = result_full > 0xFF;
 
-    cpu->registers.a = result;
+	cpu->registers.a = result;
 }
 
-void cpu_sbc(cpu_t* cpu, bus_t* bus, u8 value) {
-    i32 result_full = cpu->registers.a - value - cpu->registers.flag_c;
-    u8 result = result_full;
+void cpu_sbc(cpu_t *cpu, bus_t *bus, u8 value)
+{
+	i32 result_full = cpu->registers.a - value - cpu->registers.flag_c;
+	u8 result = result_full;
 
-    cpu->registers.flag_z = IS_ZERO(result);
-    cpu->registers.flag_n = true;
-    cpu->registers.flag_h = ((cpu->registers.a & 0xF) - (value & 0xF) - cpu->registers.flag_c) < 0;
-    cpu->registers.flag_c = result_full < 0;
+	cpu->registers.flag_z = IS_ZERO(result);
+	cpu->registers.flag_n = true;
+	cpu->registers.flag_h = ((cpu->registers.a & 0xF) - (value & 0xF) - cpu->registers.flag_c) < 0;
+	cpu->registers.flag_c = result_full < 0;
 
-    cpu->registers.a = result;
+	cpu->registers.a = result;
 }
 
-void cpu_add_hl(cpu_t* cpu, bus_t* bus, u16 value) {
-    u32 result = cpu->registers.hl + value;
+void cpu_add_hl(cpu_t *cpu, bus_t *bus, u16 value)
+{
+	u32 result = cpu->registers.hl + value;
 
-    cpu->registers.flag_n = false;
-    cpu->registers.flag_h = (cpu->registers.hl & 0xFFF) + (value & 0xFFF) > 0xFFF;
-    cpu->registers.flag_c = (result & 0x10000) != 0;
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = (cpu->registers.hl & 0xFFF) + (value & 0xFFF) > 0xFFF;
+	cpu->registers.flag_c = (result & 0x10000) != 0;
 
-    cpu->registers.hl = result;
+	cpu->registers.hl = result;
 }
 
-void cpu_add_sp(cpu_t* cpu, bus_t* bus, u8 value) {
-    i32 result = cpu->registers.sp + (i8)value;
+void cpu_add_sp(cpu_t *cpu, bus_t *bus, u8 value)
+{
+	i32 result = cpu->registers.sp + (i8)value;
 
-    cpu->registers.flag_z = false;
-    cpu->registers.flag_n = false;
-    cpu->registers.flag_h = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x10) == 0x10;
-    cpu->registers.flag_c = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x100) == 0x100;
+	cpu->registers.flag_z = false;
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x10) == 0x10;
+	cpu->registers.flag_c = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x100) == 0x100;
 
-    cpu->registers.sp = result;
+	cpu->registers.sp = result;
 }
 
-void cpu_sub(cpu_t* cpu, bus_t* bus, u8 value) {
-    i32 result = cpu->registers.a - value;
-    i32 carry = cpu->registers.a ^ value ^ result;
+void cpu_sub(cpu_t *cpu, bus_t *bus, u8 value)
+{
+	i32 result = cpu->registers.a - value;
+	i32 carry = cpu->registers.a ^ value ^ result;
 
-    cpu->registers.a = (u8)result;
+	cpu->registers.a = (u8)result;
 
-    cpu->registers.flag_z = IS_ZERO(result);
-    cpu->registers.flag_n = true;
-    cpu->registers.flag_h = !IS_ZERO(carry & 0x10);
-    cpu->registers.flag_c = !IS_ZERO(carry & 0x100);
+	cpu->registers.flag_z = IS_ZERO(result);
+	cpu->registers.flag_n = true;
+	cpu->registers.flag_h = !IS_ZERO(carry & 0x10);
+	cpu->registers.flag_c = !IS_ZERO(carry & 0x100);
 }
 
-void cpu_dec(cpu_t* cpu, bus_t* bus, u8* reg) {
-    (*reg)--;
+void cpu_dec(cpu_t *cpu, bus_t *bus, u8 *reg)
+{
+	(*reg)--;
 
-    cpu->registers.flag_z = IS_ZERO(*reg);
-    cpu->registers.flag_n = true;
-    cpu->registers.flag_h = (*reg & 0xF) == 0xF;
+	cpu->registers.flag_z = IS_ZERO(*reg);
+	cpu->registers.flag_n = true;
+	cpu->registers.flag_h = (*reg & 0xF) == 0xF;
 }
 
-void cpu_rl(cpu_t* cpu, bus_t* bus, u8* reg) {
-    bool wrap = GET_BIT(*reg, 7);
+u8 cpu_rl(cpu_t *cpu, bus_t *bus, u8 val)
+{
+	bool c = GET_BIT(val, 7);
+	u8 r = (val << 1) | cpu->registers.flag_c;
 
-    u8 result = (*reg << 1) | cpu->registers.flag_c;
-    *reg = result;
+	cpu->registers.flag_z = IS_ZERO(r);
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = false;
+	cpu->registers.flag_c = c;
 
-    cpu->registers.flag_z = IS_ZERO(result);
-    cpu->registers.flag_n = false;
-    cpu->registers.flag_h = false;
-    cpu->registers.flag_c = wrap;
+	return r;
 }
 
-void cpu_rlc(cpu_t* cpu, bus_t* bus, u8* reg) {
-    u8 carry_flag = GET_BIT(*reg, 7);
-    u8 result = (*reg << 1) | carry_flag;
+void cpu_rlc(cpu_t *cpu, bus_t *bus, u8 *reg)
+{
+	u8 carry_flag = GET_BIT(*reg, 7);
+	u8 result = (*reg << 1) | carry_flag;
 
-    *reg = result;
+	*reg = result;
 
-    cpu->registers.flag_z = IS_ZERO(result);
-    cpu->registers.flag_n = false;
-    cpu->registers.flag_h = false;
-    cpu->registers.flag_c = carry_flag;
+	cpu->registers.flag_z = IS_ZERO(result);
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = false;
+	cpu->registers.flag_c = carry_flag;
 }
 
-void cpu_rrc(cpu_t* cpu, bus_t* bus, u8* reg) {
-    u8 carry_flag = GET_BIT(*reg, 0);
-    u8 result = (*reg >> 1) | (carry_flag << 7);
+u8 cpu_rr(cpu_t *cpu, bus_t *bus, u8 val)
+{
+	u8 c = val & 0x1;
+	u8 r = (val >> 1) | (cpu->registers.flag_c ? 0x80 : 0x00);
 
-    *reg = result;
+	cpu->registers.flag_z = IS_ZERO(r);
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = false;
+	cpu->registers.flag_c = c;
 
-    cpu->registers.flag_z = IS_ZERO(result);
-    cpu->registers.flag_n = false;
-    cpu->registers.flag_h = false;
-    cpu->registers.flag_c = carry_flag;
+	return r;
 }
 
-void cpu_ld_hl(cpu_t* cpu, bus_t* bus, u8 value) {
-    i32 result = cpu->registers.sp + (i8)value;
-    cpu->registers.hl = result;
+void cpu_rrc(cpu_t *cpu, bus_t *bus, u8 *reg)
+{
+	u8 carry_flag = GET_BIT(*reg, 0);
+	u8 result = (*reg >> 1) | (carry_flag << 7);
 
-    cpu->registers.flag_z = false;
-    cpu->registers.flag_n = false;
-    cpu->registers.flag_h = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x10) == 0x10;
-    cpu->registers.flag_c = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x100) == 0x100;
+	*reg = result;
+
+	cpu->registers.flag_z = IS_ZERO(result);
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = false;
+	cpu->registers.flag_c = carry_flag;
 }
 
-void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
+u8 cpu_sla(cpu_t *cpu, bus_t *bus, u8 val)
+{
+	u8 c = GET_BIT(val, 7);
+	u8 r = val << 1;
+
+	cpu->registers.flag_z = IS_ZERO(r);
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = false;
+	cpu->registers.flag_c = c;
+
+	return r;
+}
+
+u8 cpu_sra(cpu_t *cpu, bus_t *bus, u8 val)
+{
+	u8 c = val & 0x1;
+	u8 r = (val >> 1) | (val & 0x80);
+
+	cpu->registers.flag_z = IS_ZERO(r);
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = false;
+	cpu->registers.flag_c = c;
+
+	return r;
+}
+
+u8 cpu_srl(cpu_t *cpu, bus_t *bus, u8 val)
+{
+	u8 c = val & 0x1;
+	u8 r = val >> 1;
+
+	cpu->registers.flag_z = IS_ZERO(r);
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = false;
+	cpu->registers.flag_c = c;
+
+	return r;
+}
+
+void cpu_ld_hl(cpu_t *cpu, bus_t *bus, u8 value)
+{
+	i32 result = cpu->registers.sp + (i8)value;
+	cpu->registers.hl = result;
+
+	cpu->registers.flag_z = false;
+	cpu->registers.flag_n = false;
+	cpu->registers.flag_h = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x10) == 0x10;
+	cpu->registers.flag_c = ((cpu->registers.sp ^ (i8)value ^ (result & 0xFFFF)) & 0x100) == 0x100;
+}
+
+void cpu_execute(cpu_t *cpu, bus_t *bus, u8 opcode)
 {
 	/* hdma transfer */
 	if (bus->mmu->hdma.to_copy > 0)
@@ -242,9 +305,9 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 	}
 
 	/* decode opcode & immediate values */
-	opc_t* opc = &opc_opcodes[opcode];
-    u16 imm16 = bus_peek16(bus, cpu->registers.pc + 1);
-    u8 imm8 = (u8)imm16;
+	opc_t *opc = &opc_opcodes[opcode];
+	u16 imm16 = bus_peek16(bus, cpu->registers.pc + 1);
+	u8 imm8 = (u8)imm16;
 
 	/* update state */
 	cpu->registers.pc += opc->length;
@@ -275,20 +338,20 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.b & 0xF) < ((cpu->registers.b - 1) & 0xF);
 		break;
 	case 0x05: /* dec b */
-        cpu_dec(cpu, bus, &cpu->registers.b);
+		cpu_dec(cpu, bus, &cpu->registers.b);
 		break;
 	case 0x06: /* ld b, d8 */
 		cpu->registers.b = imm8;
 		break;
 	case 0x07: /* rlca */
-        cpu_rlc(cpu, bus, &cpu->registers.a);
-        cpu->registers.flag_z = false;
+		cpu_rlc(cpu, bus, &cpu->registers.a);
+		cpu->registers.flag_z = false;
 		break;
 	case 0x08: /* ld (a16), sp */
 		bus_poke16(bus, imm16, cpu->registers.sp);
 		break;
 	case 0x09: /* add hl, bc */
-        cpu_add_hl(cpu, bus, cpu->registers.bc);
+		cpu_add_hl(cpu, bus, cpu->registers.bc);
 		break;
 	case 0x0A: /* ld a, (bc) */
 		cpu->registers.a = bus_peek8(bus, cpu->registers.bc);
@@ -303,14 +366,14 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.c & 0xF) < ((cpu->registers.c - 1) & 0xF);
 		break;
 	case 0x0D: /* dec c */
-        cpu_dec(cpu, bus, &cpu->registers.c);
+		cpu_dec(cpu, bus, &cpu->registers.c);
 		break;
 	case 0x0E: /* ld c, d8 */
 		cpu->registers.c = imm8;
 		break;
 	case 0x0F: /* rrca */
-        cpu_rrc(cpu, bus, &cpu->registers.a);
-        cpu->registers.flag_z = false;
+		cpu_rrc(cpu, bus, &cpu->registers.a);
+		cpu->registers.flag_z = false;
 		break;
 	case 0x10: /* stop 0 */
 		if (cpu->cgb.enabled)
@@ -320,25 +383,25 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 				/* do speed switch */
 				if (!bus->mmu->io.current_speed) // transition from normal -> double
 				{
-                    bus->mmu->io.current_speed = 1;
+					bus->mmu->io.current_speed = 1;
 				}
 				else // transition from double -> normal
 				{
-                    bus->mmu->io.current_speed = 0;
+					bus->mmu->io.current_speed = 0;
 				}
 
-                bus->mmu->io.prepare_speed_switch = 0;
-//				cpu->stopped = true;
+				bus->mmu->io.prepare_speed_switch = 0;
+				//				cpu->stopped = true;
 			}
 		}
 		else
 		{
-            /* fixme: commented out for now... */
-//			cpu->stopped = true;
+			/* fixme: commented out for now... */
+			//			cpu->stopped = true;
 		}
 
 		/* reset div timer */
-        bus->mmu->io.div = 0;
+		bus->mmu->io.div = 0;
 		break;
 	case 0x11: /* ld de, d16 */
 		cpu->registers.de = imm16;
@@ -356,20 +419,20 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.d & 0xF) < ((cpu->registers.d - 1) & 0xF);
 		break;
 	case 0x15: /* dec d */
-        cpu_dec(cpu, bus, &cpu->registers.d);
+		cpu_dec(cpu, bus, &cpu->registers.d);
 		break;
 	case 0x16: /* ld d, d8 */
 		cpu->registers.d = imm8;
 		break;
 	case 0x17: /* rla */
-        cpu_rl(cpu, bus, &cpu->registers.a);
-        cpu->registers.flag_z = false;
+		cpu->registers.a = cpu_rl(cpu, bus, cpu->registers.a);
+		cpu->registers.flag_z = false;
 		break;
 	case 0x18: /* jr r8 */
 		cpu->registers.pc += (i8)imm8;
 		break;
 	case 0x19: /* add hl, de */
-        cpu_add_hl(cpu, bus, cpu->registers.de);
+		cpu_add_hl(cpu, bus, cpu->registers.de);
 		break;
 	case 0x1A: /* ld a, (de) */
 		cpu->registers.a = bus_peek8(bus, cpu->registers.de);
@@ -384,7 +447,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.e & 0xF) < ((cpu->registers.e - 1) & 0xF);
 		break;
 	case 0x1D: /* dec e */
-        cpu_dec(cpu, bus, &cpu->registers.e);
+		cpu_dec(cpu, bus, &cpu->registers.e);
 		break;
 	case 0x1E: /* ld e, d8 */
 		cpu->registers.e = imm8;
@@ -420,7 +483,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.h & 0xF) < ((cpu->registers.h - 1) & 0xF);
 		break;
 	case 0x25: /* dec h */
-        cpu_dec(cpu, bus, &cpu->registers.h);
+		cpu_dec(cpu, bus, &cpu->registers.h);
 		break;
 	case 0x26: /* ld h, d8 */
 		cpu->registers.h = imm8;
@@ -440,8 +503,10 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		}
 		else
 		{
-			if (cpu->registers.flag_c) cpu->registers.a -= 0x60;
-			if (cpu->registers.flag_h) cpu->registers.a -= 0x6;
+			if (cpu->registers.flag_c)
+				cpu->registers.a -= 0x60;
+			if (cpu->registers.flag_h)
+				cpu->registers.a -= 0x6;
 		}
 
 		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
@@ -455,7 +520,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		}
 		break;
 	case 0x29: /* add hl, hl */
-        cpu_add_hl(cpu, bus, cpu->registers.hl);
+		cpu_add_hl(cpu, bus, cpu->registers.hl);
 		break;
 	case 0x2A: /* ld a, (hl+) */
 		cpu->registers.a = bus_peek8(bus, cpu->registers.hl++);
@@ -470,7 +535,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = (cpu->registers.l & 0xF) < ((cpu->registers.l - 1) & 0xF);
 		break;
 	case 0x2D: /* dec l */
-        cpu_dec(cpu, bus, &cpu->registers.l);
+		cpu_dec(cpu, bus, &cpu->registers.l);
 		break;
 	case 0x2E: /* ld l, d8 */
 		cpu->registers.l = imm8;
@@ -526,7 +591,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		}
 		break;
 	case 0x39: /* add hl, sp */
-        cpu_add_hl(cpu, bus, cpu->registers.sp);
+		cpu_add_hl(cpu, bus, cpu->registers.sp);
 		break;
 	case 0x3A: /* ld a, (hl-) */
 		cpu->registers.a = bus_peek8(bus, cpu->registers.hl--);
@@ -744,100 +809,100 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.a = cpu->registers.a;
 		break;
 	case 0x80: /* add a, b */
-        cpu_add(cpu, bus, cpu->registers.b);
+		cpu_add(cpu, bus, cpu->registers.b);
 		break;
 	case 0x81: /* add a, c */
-        cpu_add(cpu, bus, cpu->registers.c);
+		cpu_add(cpu, bus, cpu->registers.c);
 		break;
 	case 0x82: /* add a, d */
-        cpu_add(cpu, bus, cpu->registers.d);
+		cpu_add(cpu, bus, cpu->registers.d);
 		break;
 	case 0x83: /* add a, e */
-        cpu_add(cpu, bus, cpu->registers.e);
+		cpu_add(cpu, bus, cpu->registers.e);
 		break;
 	case 0x84: /* add a, h */
-        cpu_add(cpu, bus, cpu->registers.h);
+		cpu_add(cpu, bus, cpu->registers.h);
 		break;
 	case 0x85: /* add a, l */
-        cpu_add(cpu, bus, cpu->registers.l);
+		cpu_add(cpu, bus, cpu->registers.l);
 		break;
 	case 0x86: /* add a, (hl) */
-        cpu_add(cpu, bus, bus_peek8(bus, cpu->registers.hl));
+		cpu_add(cpu, bus, bus_peek8(bus, cpu->registers.hl));
 		break;
 	case 0x87: /* add a, a */
-        cpu_add(cpu, bus, cpu->registers.a);
-        break;
+		cpu_add(cpu, bus, cpu->registers.a);
+		break;
 	case 0x88: /* adc a, b */
-        cpu_adc(cpu, bus, cpu->registers.b);
+		cpu_adc(cpu, bus, cpu->registers.b);
 		break;
 	case 0x89: /* adc a, c */
-        cpu_adc(cpu, bus, cpu->registers.c);
+		cpu_adc(cpu, bus, cpu->registers.c);
 		break;
 	case 0x8A: /* adc a, d */
-        cpu_adc(cpu, bus, cpu->registers.d);
+		cpu_adc(cpu, bus, cpu->registers.d);
 		break;
 	case 0x8B: /* adc a, e */
-        cpu_adc(cpu, bus, cpu->registers.e);
+		cpu_adc(cpu, bus, cpu->registers.e);
 		break;
 	case 0x8C: /* adc a, h */
-        cpu_adc(cpu, bus, cpu->registers.h);
+		cpu_adc(cpu, bus, cpu->registers.h);
 		break;
 	case 0x8D: /* adc a, l */
-        cpu_adc(cpu, bus, cpu->registers.l);
+		cpu_adc(cpu, bus, cpu->registers.l);
 		break;
 	case 0x8E: /* adc a, (hl) */
-        cpu_adc(cpu, bus, bus_peek8(bus, cpu->registers.hl));
+		cpu_adc(cpu, bus, bus_peek8(bus, cpu->registers.hl));
 		break;
 	case 0x8F: /* adc a, a */
-        cpu_adc(cpu, bus, cpu->registers.a);
+		cpu_adc(cpu, bus, cpu->registers.a);
 		break;
 	case 0x90: /* sub b */
-        cpu_sub(cpu, bus, cpu->registers.b);
+		cpu_sub(cpu, bus, cpu->registers.b);
 		break;
 	case 0x91: /* sub c */
-        cpu_sub(cpu, bus, cpu->registers.c);
+		cpu_sub(cpu, bus, cpu->registers.c);
 		break;
 	case 0x92: /* sub d */
-        cpu_sub(cpu, bus, cpu->registers.d);
+		cpu_sub(cpu, bus, cpu->registers.d);
 		break;
 	case 0x93: /* sub e */
-        cpu_sub(cpu, bus, cpu->registers.e);
+		cpu_sub(cpu, bus, cpu->registers.e);
 		break;
 	case 0x94: /* sub h */
-        cpu_sub(cpu, bus, cpu->registers.h);
+		cpu_sub(cpu, bus, cpu->registers.h);
 		break;
 	case 0x95: /* sub l */
-        cpu_sub(cpu, bus, cpu->registers.l);
+		cpu_sub(cpu, bus, cpu->registers.l);
 		break;
 	case 0x96: /* sub (hl) */
-        cpu_sub(cpu, bus, bus_peek8(bus, cpu->registers.hl));
+		cpu_sub(cpu, bus, bus_peek8(bus, cpu->registers.hl));
 		break;
 	case 0x97: /* sub a */
-        cpu_sub(cpu, bus, cpu->registers.a);
+		cpu_sub(cpu, bus, cpu->registers.a);
 		break;
 	case 0x98: /* sbc a, b */
-        cpu_sbc(cpu, bus, cpu->registers.b);
+		cpu_sbc(cpu, bus, cpu->registers.b);
 		break;
 	case 0x99: /* sbc a, c */
-        cpu_sbc(cpu, bus, cpu->registers.c);
+		cpu_sbc(cpu, bus, cpu->registers.c);
 		break;
 	case 0x9A: /* sbc a, d */
-        cpu_sbc(cpu, bus, cpu->registers.d);
+		cpu_sbc(cpu, bus, cpu->registers.d);
 		break;
 	case 0x9B: /* sbc a, e */
-        cpu_sbc(cpu, bus, cpu->registers.e);
+		cpu_sbc(cpu, bus, cpu->registers.e);
 		break;
 	case 0x9C: /* sbc a, h */
-        cpu_sbc(cpu, bus, cpu->registers.h);
+		cpu_sbc(cpu, bus, cpu->registers.h);
 		break;
 	case 0x9D: /* sbc a, l */
-        cpu_sbc(cpu, bus, cpu->registers.l);
+		cpu_sbc(cpu, bus, cpu->registers.l);
 		break;
 	case 0x9E: /* sbc a, (hl) */
-        cpu_sbc(cpu, bus, bus_peek8(bus, cpu->registers.hl));
+		cpu_sbc(cpu, bus, bus_peek8(bus, cpu->registers.hl));
 		break;
 	case 0x9F: /* sbc a, a */
-        cpu_sbc(cpu, bus, cpu->registers.a);
+		cpu_sbc(cpu, bus, cpu->registers.a);
 		break;
 	case 0xA0: /* and b */
 		cpu->registers.a &= cpu->registers.b;
@@ -1226,7 +1291,7 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu_call(cpu, bus, 0x20);
 		break;
 	case 0xE8: /* add sp, r8 */
-        cpu_add_sp(cpu, bus, imm8);
+		cpu_add_sp(cpu, bus, imm8);
 		break;
 	case 0xE9: /* jp hl */
 		cpu->registers.pc = cpu->registers.hl;
@@ -1270,12 +1335,12 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu_call(cpu, bus, 0x30);
 		break;
 	case 0xF8: /* ld hl, sp+r8 */
-        cpu_ld_hl(cpu, bus, imm8);
-//		cpu->registers.hl = cpu->registers.sp + (i8)imm8;
-//		cpu->registers.flag_z = false;
-//		cpu->registers.flag_n = false;
-//		cpu->registers.flag_h = ((cpu->registers.sp + imm8) & 0xF) < (cpu->registers.sp & 0xF);
-//		cpu->registers.flag_c = cpu->registers.sp + imm8 < cpu->registers.sp;
+		cpu_ld_hl(cpu, bus, imm8);
+		//		cpu->registers.hl = cpu->registers.sp + (i8)imm8;
+		//		cpu->registers.flag_z = false;
+		//		cpu->registers.flag_n = false;
+		//		cpu->registers.flag_h = ((cpu->registers.sp + imm8) & 0xF) < (cpu->registers.sp & 0xF);
+		//		cpu->registers.flag_c = cpu->registers.sp + imm8 < cpu->registers.sp;
 		break;
 	case 0xF9: /* ld sp, hl */
 		cpu->registers.sp = cpu->registers.hl;
@@ -1302,10 +1367,10 @@ void cpu_execute(cpu_t* cpu, bus_t* bus, u8 opcode)
 	}
 }
 
-void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
+void cpu_execute_cb(cpu_t *cpu, bus_t *bus, u8 opcode)
 {
 	/* decode opcode & immediate values */
-	opc_t* opc = &opc_opcodes_cb[opcode];
+	opc_t *opc = &opc_opcodes_cb[opcode];
 
 	/* update state */
 	cpu->registers.pc += opc->length - 1; // subtract one because length of prefix is already counted
@@ -1431,7 +1496,7 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 		break;
 	case 0x0E: /* rrc (hl) */
 		tmp8 = bus_peek8(bus, cpu->registers.hl) & 0x1;
-        tmp16 = (bus_peek8(bus, cpu->registers.hl) >> 1) | tmp8;
+		tmp16 = (bus_peek8(bus, cpu->registers.hl) >> 1) | (tmp8 ? 0x80 : 0);
 		bus_poke8(bus, cpu->registers.hl, tmp16);
 		cpu->registers.flag_z = IS_ZERO(tmp16);
 		cpu->registers.flag_n = false;
@@ -1495,12 +1560,7 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_c = tmp8 >> 7;
 		break;
 	case 0x16: /* rl (hl) */
-		tmp8 = bus_peek8(bus, cpu->registers.hl) >> 7;
-		bus_poke8(bus, cpu->registers.hl, (bus_peek8(bus, cpu->registers.hl) << 1) | cpu->registers.flag_c);
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.hl);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = false;
-		cpu->registers.flag_c = tmp8;
+		bus_poke8(bus, cpu->registers.hl, cpu_rl(cpu, bus, bus_peek8(bus, cpu->registers.hl)));
 		break;
 	case 0x17: /* rl a */
 		tmp8 = cpu->registers.a;
@@ -1559,12 +1619,7 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_c = tmp8;
 		break;
 	case 0x1E: /* rr (hl) */
-        tmp8 = bus_peek8(bus, cpu->registers.hl) & 0x1;
-        cpu->registers.hl = (bus_peek8(bus, cpu->registers.hl) >> 1) | (cpu->registers.flag_c << 7);
-        cpu->registers.flag_z = IS_ZERO(cpu->registers.hl);
-        cpu->registers.flag_n = false;
-        cpu->registers.flag_h = false;
-        cpu->registers.flag_c = tmp8;
+		bus_poke8(bus, cpu->registers.hl, cpu_rr(cpu, bus, bus_peek8(bus, cpu->registers.hl)));
 		break;
 	case 0x1F: /* rr a */
 		tmp8 = cpu->registers.a & 0x1;
@@ -1617,12 +1672,7 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = false;
 		break;
 	case 0x26: /* sla (hl) */
-		tmp8 = bus_peek8(bus, cpu->registers.hl);
-		cpu->registers.flag_c = tmp8 >> 7;
-		cpu->registers.a = tmp8 << 1;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.a);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = false;
+		bus_poke8(bus, cpu->registers.hl, cpu_sla(cpu, bus, bus_peek8(bus, cpu->registers.hl)));
 		break;
 	case 0x27: /* sla a */
 		cpu->registers.flag_c = cpu->registers.a >> 7;
@@ -1674,12 +1724,7 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = false;
 		break;
 	case 0x2E: /* sra (hl) */
-		tmp8 = bus_peek8(bus, cpu->registers.hl) & 0x1;
-		cpu->registers.flag_c = tmp8 & 0x1;
-		bus_poke8(bus, cpu->registers.hl, bus_peek8(bus, (cpu->registers.hl) >> 1) | tmp8);
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.b);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = false;
+		bus_poke8(bus, cpu->registers.hl, cpu_sra(cpu, bus, bus_peek8(bus, cpu->registers.hl)));
 		break;
 	case 0x2F: /* sra a */
 		cpu->registers.flag_c = cpu->registers.a & 0x1;
@@ -1788,12 +1833,7 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = false;
 		break;
 	case 0x3E: /* srl (hl) */
-		tmp8 = bus_peek8(bus, cpu->registers.hl);
-		cpu->registers.flag_c = tmp8 & 0x1;
-		cpu->registers.l = tmp8 >> 1;
-		cpu->registers.flag_z = IS_ZERO(cpu->registers.l);
-		cpu->registers.flag_n = false;
-		cpu->registers.flag_h = false;
+		bus_poke8(bus, cpu->registers.hl, cpu_srl(cpu, bus, bus_peek8(bus, cpu->registers.hl)));
 		break;
 	case 0x3F: /* srl a */
 		cpu->registers.flag_c = cpu->registers.a & 0x1;
@@ -1993,7 +2033,7 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 		cpu->registers.flag_h = true;
 		break;
 	case 0x66: /* bit 4, (hl) */
-		cpu->registers.flag_z = !(cpu->registers.c & 0x10);
+		cpu->registers.flag_z = !(bus_peek8(bus, cpu->registers.hl) & 0x10);
 		cpu->registers.flag_n = false;
 		cpu->registers.flag_h = true;
 		break;
@@ -2512,13 +2552,13 @@ void cpu_execute_cb(cpu_t* cpu, bus_t* bus, u8 opcode)
 	}
 }
 
-void cpu_request(cpu_t* cpu, bus_t* bus, u8 index)
+void cpu_request(cpu_t *cpu, bus_t *bus, u8 index)
 {
 	/* set interrupt request flag bit */
 	bus->mmu->io.irf |= index;
 }
 
-void cpu_interrupt(cpu_t* cpu, bus_t* bus, u16 address)
+void cpu_interrupt(cpu_t *cpu, bus_t *bus, u16 address)
 {
 	/* disable interrupts */
 	cpu->interrupt.master = false;
@@ -2527,184 +2567,194 @@ void cpu_interrupt(cpu_t* cpu, bus_t* bus, u16 address)
 	cpu_call(cpu, bus, address);
 }
 
-void cpu_cycle(cpu_t* cpu, bus_t* bus)
+void cpu_cycle(cpu_t *cpu, bus_t *bus)
 {
-    cpu_cycle_interrupt(cpu, bus);
+	cpu_cycle_interrupt(cpu, bus);
 
 	/* fetch opcode */
 	u8 opcode = bus_peek8(bus, cpu->registers.pc);
 
 	/* execute */
-    if (!cpu->halted && !cpu->stopped)
+	if (!cpu->halted && !cpu->stopped)
 	{
 		cpu_execute(cpu, bus, opcode);
 	}
-    else
-    {
-//        cpu->clock.cycles += 4;
-    }
+	else
+	{
+		//        cpu->clock.cycles += 4;
+	}
 
-    cpu_cycle_clock(cpu, bus, cpu->clock.cycles);
+	cpu_cycle_clock(cpu, bus, cpu->clock.cycles);
 }
 
-void cpu_cycle_interrupt(cpu_t* cpu, bus_t* bus)
+void cpu_cycle_interrupt(cpu_t *cpu, bus_t *bus)
 {
-    /* decode pending interrupts */
-    u8 interrupt_flags = bus->mmu->memory.interrupt_enable & bus->mmu->io.irf;
+	/* decode pending interrupts */
+	u8 interrupt_flags = bus->mmu->memory.interrupt_enable & bus->mmu->io.irf;
 
-    /* check power mode */
-    if (cpu->stopped)
-    {
-        /* only joypad interrupts wake the dmg */
-        if (interrupt_flags & INT_JOYPAD_INDEX)
-        {
-            cpu->stopped = false;
-            cpu->halted = false;
-        }
-    }
-    if (cpu->halted)
-    {
-        /* any interrupts wakes the dmg */
-        if (interrupt_flags)
-        {
-            cpu->halted = false;
-        }
-    }
+	/* check power mode */
+	if (cpu->stopped)
+	{
+		/* only joypad interrupts wake the dmg */
+		if (interrupt_flags & INT_JOYPAD_INDEX)
+		{
+			cpu->stopped = false;
+			cpu->halted = false;
+		}
+	}
+	if (cpu->halted)
+	{
+		/* any interrupts wakes the dmg */
+		if (interrupt_flags)
+		{
+			cpu->halted = false;
+		}
+	}
 
-    /* register ppu interrupts */
-    if (cpu->interrupt.master)
-    {
-        if (bus->ppu->interrupt.v_blank) cpu_request(cpu, bus, INT_V_BLANK_INDEX);
-        if (bus->ppu->interrupt.lcd_stat) cpu_request(cpu, bus, INT_LCD_STAT_INDEX);
-    }
+	/* register ppu interrupts */
+	if (cpu->interrupt.master)
+	{
+		if (bus->ppu->interrupt.v_blank)
+			cpu_request(cpu, bus, INT_V_BLANK_INDEX);
+		if (bus->ppu->interrupt.lcd_stat)
+			cpu_request(cpu, bus, INT_LCD_STAT_INDEX);
+	}
 
-    /* execute interrupts */
-    if (cpu->interrupt.master && !cpu->interrupt.pending)
-    {
-        if (interrupt_flags & INT_V_BLANK_INDEX)
-        {
-            /* v-blank interrupt */
-            cpu_interrupt(cpu, bus, INT_V_BLANK);
-            bus->mmu->io.irf &= ~INT_V_BLANK_INDEX;
-        }
-        else if (interrupt_flags & INT_LCD_STAT_INDEX)
-        {
-            /* lcd-stat interrupt */
-            cpu_interrupt(cpu, bus, INT_LCD_STAT);
-            bus->mmu->io.irf &= ~INT_LCD_STAT_INDEX;
-        }
-        else if (interrupt_flags & INT_TIMER_INDEX)
-        {
-            /* timer interrupt */
-            cpu_interrupt(cpu, bus, INT_TIMER);
-            bus->mmu->io.irf &= ~INT_TIMER_INDEX;
-        }
-        else if (interrupt_flags & INT_SERIAL_INDEX)
-        {
-            /* serial interrupt */
-            cpu_interrupt(cpu, bus, INT_SERIAL);
-            bus->mmu->io.irf &= ~INT_SERIAL_INDEX;
-        }
-        else if (interrupt_flags & INT_JOYPAD_INDEX)
-        {
-            /* joypad interrupt */
-            cpu_interrupt(cpu, bus, INT_JOYPAD);
-            bus->mmu->io.irf &= ~INT_JOYPAD_INDEX;
-        }
-    }
-    else if (cpu->interrupt.pending)
-    {
-        cpu->interrupt.pending--;
-    }
+	/* execute interrupts */
+	if (cpu->interrupt.master && !cpu->interrupt.pending)
+	{
+		if (interrupt_flags & INT_V_BLANK_INDEX)
+		{
+			/* v-blank interrupt */
+			cpu_interrupt(cpu, bus, INT_V_BLANK);
+			bus->mmu->io.irf &= ~INT_V_BLANK_INDEX;
+		}
+		else if (interrupt_flags & INT_LCD_STAT_INDEX)
+		{
+			/* lcd-stat interrupt */
+			cpu_interrupt(cpu, bus, INT_LCD_STAT);
+			bus->mmu->io.irf &= ~INT_LCD_STAT_INDEX;
+		}
+		else if (interrupt_flags & INT_TIMER_INDEX)
+		{
+			/* timer interrupt */
+			cpu_interrupt(cpu, bus, INT_TIMER);
+			bus->mmu->io.irf &= ~INT_TIMER_INDEX;
+		}
+		else if (interrupt_flags & INT_SERIAL_INDEX)
+		{
+			/* serial interrupt */
+			cpu_interrupt(cpu, bus, INT_SERIAL);
+			bus->mmu->io.irf &= ~INT_SERIAL_INDEX;
+		}
+		else if (interrupt_flags & INT_JOYPAD_INDEX)
+		{
+			/* joypad interrupt */
+			cpu_interrupt(cpu, bus, INT_JOYPAD);
+			bus->mmu->io.irf &= ~INT_JOYPAD_INDEX;
+		}
+	}
+	else if (cpu->interrupt.pending)
+	{
+		cpu->interrupt.pending--;
+	}
 }
 
-void cpu_cycle_clock(cpu_t* cpu, bus_t* bus, usize cycles)
+void cpu_cycle_clock(cpu_t *cpu, bus_t *bus, usize cycles)
 {
-    usize m_cycles = cycles * (bus->mmu->io.current_speed ? 2 : 1) / 4;
-    cpu->clock.div_clock += m_cycles;
-    cpu->clock.tima_clock += m_cycles;
-    cpu->clock.fs_clock += m_cycles;
+	usize m_cycles = cycles * (bus->mmu->io.current_speed ? 2 : 1) / 4;
+	cpu->clock.div_clock += m_cycles;
+	cpu->clock.tima_clock += m_cycles;
+	cpu->clock.fs_clock += m_cycles;
 
-    if (cpu->clock.div_clock >= DIV_CLOCK)
-    {
-        bus->mmu->io.div++;
-        cpu->clock.div_clock -= DIV_CLOCK;
-    }
+	if (cpu->clock.div_clock >= DIV_CLOCK)
+	{
+		bus->mmu->io.div++;
+		cpu->clock.div_clock -= DIV_CLOCK;
+	}
 
-    if (bus->mmu->io.tac & BIT(2))
-    {
-        usize tima_rate;
+	if (bus->mmu->io.tac & BIT(2))
+	{
+		usize tima_rate;
 
-        switch (bus->mmu->io.tac & 0x3)
-        {
-            case 0: tima_rate = 1000; break;
-            case 1: tima_rate = 16; break;
-            case 2: tima_rate = 64; break;
-            case 3: tima_rate = 256; break;
-        }
+		switch (bus->mmu->io.tac & 0x3)
+		{
+		case 0:
+			tima_rate = 1000;
+			break;
+		case 1:
+			tima_rate = 16;
+			break;
+		case 2:
+			tima_rate = 64;
+			break;
+		case 3:
+			tima_rate = 256;
+			break;
+		}
 
-        if (cpu->clock.tima_clock >= tima_rate)
-        {
-            if (!++bus->mmu->io.tima)
-            {
-                bus->mmu->io.tima = bus->mmu->io.tma;
-                cpu_request(cpu, bus, INT_TIMER_INDEX);
-            }
-            cpu->clock.tima_clock -= tima_rate;
-        }
-    }
-    if (bus->apu->enabled)
-    {
-        usize apu_rate = bus->mmu->io.current_speed ? 0x4000 : 0x2000;
-        if (cpu->clock.fs_clock >= apu_rate)
-        {
-            apu_frame_sequencer(bus->apu);
-            cpu->clock.fs_clock -= apu_rate;
-        }
-    }
+		if (cpu->clock.tima_clock >= tima_rate)
+		{
+			if (!++bus->mmu->io.tima)
+			{
+				bus->mmu->io.tima = bus->mmu->io.tma;
+				cpu_request(cpu, bus, INT_TIMER_INDEX);
+			}
+			cpu->clock.tima_clock -= tima_rate;
+		}
+	}
+	if (bus->apu->enabled)
+	{
+		usize apu_rate = bus->mmu->io.current_speed ? 0x4000 : 0x2000;
+		if (cpu->clock.fs_clock >= apu_rate)
+		{
+			apu_frame_sequencer(bus->apu);
+			cpu->clock.fs_clock -= apu_rate;
+		}
+	}
 
-//    for (u32 i = 0; i < cycles * (bus->mmu->io.current_speed ? 2 : 1); i++) {
-//        u16 tac_mask;
-//        switch (bus->mmu->io.tac & 0x3) {
-//            case 0:
-//                tac_mask = BIT(9);
-//                break;
-//            case 1:
-//                tac_mask = BIT(3);
-//                break;
-//            case 2:
-//                tac_mask = BIT(5);
-//                break;
-//            case 3:
-//                tac_mask = BIT(7);
-//                break;
-//        }
-//
-//        tac_mask *= bus->mmu->io.tac & BIT(2);
-//
-//        u16 div_old = bus->mmu->io.div;
-//        bus->mmu->io.div++;
-//
-//        bool tac_bit_old = div_old & tac_mask;
-//        bool tac_bit = bus->mmu->io.div & tac_mask;
-//
-//        if (tac_bit_old && !tac_bit) {
-//            bus->mmu->io.tima++;
-//            if (bus->mmu->io.tima == 0) /* tima overflown */
-//            {
-//                bus->mmu->io.tima = bus->mmu->io.tma;
-//                cpu_request(cpu, bus, INT_TIMER_INDEX);
-//            }
-//        }
-//        if (bus->apu->enabled) {
-//            u16 fs_mask = bus->mmu->io.current_speed ? BIT(14) : BIT(13);
-//
-//            bool fs_bit_old = div_old & fs_mask;
-//            bool fs_bit = bus->mmu->io.div & fs_mask;
-//
-//            if (fs_bit_old && !fs_bit) {
-//                apu_frame_sequencer(bus->apu);
-//            }
-//        }
-//    }
+	//    for (u32 i = 0; i < cycles * (bus->mmu->io.current_speed ? 2 : 1); i++) {
+	//        u16 tac_mask;
+	//        switch (bus->mmu->io.tac & 0x3) {
+	//            case 0:
+	//                tac_mask = BIT(9);
+	//                break;
+	//            case 1:
+	//                tac_mask = BIT(3);
+	//                break;
+	//            case 2:
+	//                tac_mask = BIT(5);
+	//                break;
+	//            case 3:
+	//                tac_mask = BIT(7);
+	//                break;
+	//        }
+	//
+	//        tac_mask *= bus->mmu->io.tac & BIT(2);
+	//
+	//        u16 div_old = bus->mmu->io.div;
+	//        bus->mmu->io.div++;
+	//
+	//        bool tac_bit_old = div_old & tac_mask;
+	//        bool tac_bit = bus->mmu->io.div & tac_mask;
+	//
+	//        if (tac_bit_old && !tac_bit) {
+	//            bus->mmu->io.tima++;
+	//            if (bus->mmu->io.tima == 0) /* tima overflown */
+	//            {
+	//                bus->mmu->io.tima = bus->mmu->io.tma;
+	//                cpu_request(cpu, bus, INT_TIMER_INDEX);
+	//            }
+	//        }
+	//        if (bus->apu->enabled) {
+	//            u16 fs_mask = bus->mmu->io.current_speed ? BIT(14) : BIT(13);
+	//
+	//            bool fs_bit_old = div_old & fs_mask;
+	//            bool fs_bit = bus->mmu->io.div & fs_mask;
+	//
+	//            if (fs_bit_old && !fs_bit) {
+	//                apu_frame_sequencer(bus->apu);
+	//            }
+	//        }
+	//    }
 }

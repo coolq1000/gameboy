@@ -25,20 +25,20 @@ typedef struct rom
 	} header;
 
 	/* cart data */
-	u8* cart_data;
+	u8 *cart_data;
 	usize cart_size;
 
 	/* save data */
-	u8* save_data;
+	u8 *save_data;
 	usize save_size;
 } rom_t;
 
-void rom_init(rom_t* rom, const char* cart_path, const char* save_path);
-void rom_free(rom_t* rom);
+void rom_init(rom_t *rom, const char *cart_path, const char *save_path);
+void rom_free(rom_t *rom);
 
-void rom_load_cart(rom_t* rom, const char* cart_path);
-void rom_load_save(rom_t* rom, const char* save_path);
+void rom_load_cart(rom_t *rom, const char *cart_path);
+void rom_load_save(rom_t *rom, const char *save_path);
 
-void rom_dump_save(rom_t* rom, void* mmu, const char* save_path);
+void rom_dump_save(rom_t *rom, void *mmu, const char *save_path);
 
 #endif

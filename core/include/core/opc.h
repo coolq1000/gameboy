@@ -6,7 +6,7 @@
 
 typedef struct opc
 {
-	char* disasm;
+	char *disasm;
 	usize length;
 	usize cycles;
 } opc_t;

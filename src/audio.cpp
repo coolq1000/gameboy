@@ -2,7 +2,7 @@
 #include <cmath>
 #include <vector>
 
-Audio::Audio(gmb::APU& apu) : apu(apu)
+Audio::Audio(gmb::APU &apu) : apu(apu)
 {
     SDL_Init(SDL_INIT_AUDIO);
 
@@ -24,7 +24,7 @@ Audio::~Audio()
     SDL_CloseAudioDevice(device);
 }
 
-void Audio::queue(i16* sample, usize length)
+void Audio::queue(i16 *sample, usize length)
 {
     SDL_QueueAudio(device, sample, length * sizeof(i16));
 }

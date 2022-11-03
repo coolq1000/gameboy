@@ -8,8 +8,8 @@
 #define VRAM_SIZE 0x2000
 #define XRAM_SIZE 0x2000
 #define WRAM_SIZE 0x1000
-#define  OAM_SIZE 0x9F
-#define   IO_SIZE 0x7F
+#define OAM_SIZE 0x9F
+#define IO_SIZE 0x7F
 #define HRAM_SIZE 0x7E
 
 #define MBC5_XRAM_COUNT 0xF
@@ -59,18 +59,18 @@
 
 typedef struct mmu
 {
-	rom_t* rom;
+    rom_t *rom;
 
-	/* memory map */
+    /* memory map */
     struct
     {
-        u8* cart[2];
-        u8* vram[CGB_VRAM_COUNT];
-        u8* xram[MBC5_XRAM_COUNT];
-        u8* wram[CGB_WRAM_COUNT];
-        u8* oam;
-        u8* io;
-        u8* hram;
+        u8 *cart[2];
+        u8 *vram[CGB_VRAM_COUNT];
+        u8 *xram[MBC5_XRAM_COUNT];
+        u8 *wram[CGB_WRAM_COUNT];
+        u8 *oam;
+        u8 *io;
+        u8 *hram;
         u8 interrupt_enable;
     } memory;
     struct
@@ -93,8 +93,25 @@ typedef struct mmu
         u8 obp1;
         u8 wy;
         u8 wx;
-        union { u8 key1; struct { u8 prepare_speed_switch : 1; u8 _pad_00 : 6; u8 current_speed : 1; }; };
-        union { u8 vbk; struct { u8 vram_bank : 1; u8 _pad_01 : 7; }; }; // only first bit readable
+        union
+        {
+            u8 key1;
+            struct
+            {
+                u8 prepare_speed_switch : 1;
+                u8 _pad_00 : 6;
+                u8 current_speed : 1;
+            };
+        };
+        union
+        {
+            u8 vbk;
+            struct
+            {
+                u8 vram_bank : 1;
+                u8 _pad_01 : 7;
+            };
+        }; // only first bit readable
         u8 hdma1;
         u8 hdma2;
         u8 hdma3;
@@ -134,14 +151,14 @@ typedef struct mmu
     u8 null_mem;
 } mmu_t;
 
-void mmu_init(mmu_t* mmu, rom_t* rom);
-void mmu_free(mmu_t* mmu);
+void mmu_init(mmu_t *mmu, rom_t *rom);
+void mmu_free(mmu_t *mmu);
 
-u8* mmu_map(mmu_t* mmu, u16 address);
+u8 *mmu_map(mmu_t *mmu, u16 address);
 
-u8 mmu_peek(mmu_t* mmu, u16 address);
-void mmu_poke(mmu_t* mmu, u16 address, u8 value);
+u8 mmu_peek(mmu_t *mmu, u16 address);
+void mmu_poke(mmu_t *mmu, u16 address, u8 value);
 
-void mmu_hdma_copy_block(mmu_t* mmu);
+void mmu_hdma_copy_block(mmu_t *mmu);
 
 #endif

@@ -11,18 +11,18 @@ typedef struct ppu ppu_t;
 
 typedef struct bus
 {
-    cpu_t* cpu;
-    apu_t* apu;
-    mmu_t* mmu;
-    ppu_t* ppu;
+    cpu_t *cpu;
+    apu_t *apu;
+    mmu_t *mmu;
+    ppu_t *ppu;
 } bus_t;
 
-void bus_init(bus_t* bus, cpu_t* cpu, apu_t* apu, mmu_t* mmu, ppu_t* ppu);
+void bus_init(bus_t *bus, cpu_t *cpu, apu_t *apu, mmu_t *mmu, ppu_t *ppu);
 
-u8 bus_peek8(bus_t* bus, u16 address);
-u16 bus_peek16(bus_t* bus, u16 address);
+u8 bus_peek8(bus_t *bus, u16 address);
+u16 bus_peek16(bus_t *bus, u16 address);
 
-void bus_poke8(bus_t* bus, u16 address, u8 value);
-void bus_poke16(bus_t* bus, u16 address, u16 value);
+void bus_poke8(bus_t *bus, u16 address, u8 value);
+void bus_poke16(bus_t *bus, u16 address, u16 value);
 
 #endif

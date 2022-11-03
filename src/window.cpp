@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-Window::Window(gmb::PPU& ppu) : ppu(ppu)
+Window::Window(gmb::PPU &ppu) : ppu(ppu)
 {
     SDL_Init(SDL_INIT_VIDEO);
     handle = SDL_CreateWindow("gameboy", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
@@ -35,13 +35,13 @@ void Window::process()
     {
         switch (event.type)
         {
-            case SDL_QUIT:
-                running = false;
-                break;
+        case SDL_QUIT:
+            running = false;
+            break;
         }
     }
 
-    keys = reinterpret_cast<const u8*>(SDL_GetKeyboardState(NULL));
+    keys = reinterpret_cast<const u8 *>(SDL_GetKeyboardState(NULL));
 }
 
 void Window::update()
@@ -57,10 +57,12 @@ void Window::update()
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
 
-    while (true) {
+    while (true)
+    {
         u32 delta = SDL_GetTicks() - last_time;
 
-        if (delta > 1000 / 60.0) {
+        if (delta > 1000 / 60.0)
+        {
             last_time = SDL_GetTicks();
             break;
         }
